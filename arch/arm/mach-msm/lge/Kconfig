@@ -153,4 +153,11 @@ config LGE_BOOT_MODE
 	help
 	 This feature shows boot mode to userspace through sysfs
 
+config LGE_FBCON_INACTIVE_CONSOLE
+	bool "Support LGE FBCON inactive console"
+	default n
+	depends on MACH_LGE
+	help
+	 Choose if inactive console
+
 endmenu
