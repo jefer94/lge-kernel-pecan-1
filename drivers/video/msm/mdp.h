@@ -602,7 +602,15 @@ extern struct mdp_hist_mgmt *mdp_hist_mgmt_array[];
 #define DMA_DSTC1B_5BITS BIT(2)
 #define DMA_DSTC2R_5BITS BIT(4)
 
+#ifdef CONFIG_FB_MSM_EBI2
+/* LGE_CHANGE
+ * FIXME: EBI2 LCD support. If QCT is implement, should be removed.
+ * 2011-06-17, bongkyu.kim@lge.com
+ */
+#define DMA_PACK_TIGHT                      0
+#else
 #define DMA_PACK_TIGHT                      BIT(6)
+#endif /*CONFIG_FB_MSM_EBI2*/
 #define DMA_PACK_LOOSE                      0
 #define DMA_PACK_ALIGN_LSB                  0
 /*
