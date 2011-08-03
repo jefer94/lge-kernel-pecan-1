@@ -311,9 +311,12 @@ void gsmd_ctrl_disconnect(struct grmnet *gr, u8 port_num)
 static void grmnet_ctrl_smd_port_free(int portno)
 {
 	struct rmnet_ctrl_port	*port = ports[portno].port;
+	struct platform_driver *pdrv = &ports[portno].pdrv;
 
-	if (!port)
+	if (port) {
 		kfree(port);
+		platform_driver_unregister(pdrv);
+	}
 }
 
 static int grmnet_ctrl_smd_port_alloc(int portno)
