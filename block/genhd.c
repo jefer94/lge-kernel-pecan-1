@@ -1105,7 +1105,6 @@ static void disk_release(struct device *dev)
 	free_part_info(&disk->part0);
 	kfree(disk);
 }
-struct class block_class = {
 
 static int disk_uevent(struct device *dev, struct kobj_uevent_env *env)
 {
