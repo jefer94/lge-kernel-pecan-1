@@ -653,6 +653,7 @@ int mdp4_writeback_terminate(struct fb_info *info);
 int mdp4_csc_config(struct mdp_csc_cfg_data *config);
 void mdp4_csc_write(struct mdp_csc_cfg *data, uint32_t base);
 int mdp4_csc_enable(struct mdp_csc_cfg_data *config);
+int mdp4_pcc_cfg(struct mdp_pcc_cfg_data *cfg_ptr);
 
 u32  mdp4_allocate_writeback_buf(struct msm_fb_data_type *mfd, u32 mix_num);
 void mdp4_init_writeback_buf(struct msm_fb_data_type *mfd, u32 mix_num);
