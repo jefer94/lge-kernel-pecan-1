@@ -507,7 +507,8 @@ static int adreno_start(struct kgsl_device *device, unsigned int init_ram)
 	struct adreno_device *adreno_dev = ADRENO_DEVICE(device);
 	int init_reftimestamp = 0x7fffffff;
 
-	kgsl_pwrctrl_set_state(device, KGSL_STATE_INIT);
+	if (KGSL_STATE_DUMP_AND_RECOVER != device->state)
+		kgsl_pwrctrl_set_state(device, KGSL_STATE_INIT);
 
 	/* Power up the device */
 	kgsl_pwrctrl_enable(device);
@@ -603,13 +604,15 @@ static int adreno_start(struct kgsl_device *device, unsigned int init_ram)
 	device->ftbl->irqctrl(device, 1);
 
 	status = adreno_ringbuffer_start(&adreno_dev->ringbuffer, init_ram);
-	if (status != 0)
-		goto error_irq_off;
 
-	mod_timer(&device->idle_timer, jiffies + FIRST_TIMEOUT);
-	return status;
+	if (status == 0) {
+		/* While recovery is on we do not want timer to
+		 * fire and attempt to change any device state */
+		if (KGSL_STATE_DUMP_AND_RECOVER != device->state)
+			mod_timer(&device->idle_timer, jiffies + FIRST_TIMEOUT);
+		return 0;
+	}
 
-error_irq_off:
 	kgsl_pwrctrl_irq(device, KGSL_PWRFLAGS_OFF);
 	kgsl_mmu_stop(device);
 error_clk_off:
@@ -744,6 +747,8 @@ adreno_recover_hang(struct kgsl_device *device)
 	/* Restore valid commands in ringbuffer */
 	adreno_ringbuffer_restore(rb, rb_buffer, num_rb_contents);
 	rb->timestamp = timestamp;
+	/* wait for idle */
+	ret = adreno_idle(device, KGSL_TIMEOUT_DEFAULT);
 done:
 	vfree(rb_buffer);
 	return ret;
@@ -948,7 +953,8 @@ retry:
 
 err:
 	KGSL_DRV_ERR(device, "spun too long waiting for RB to idle\n");
-	if (!adreno_dump_and_recover(device)) {
+	if (KGSL_STATE_DUMP_AND_RECOVER != device->state &&
+		!adreno_dump_and_recover(device)) {
 		wait_time = jiffies + wait_timeout;
 		goto retry;
 	}
@@ -1250,10 +1256,9 @@ static int adreno_waittimestamp(struct kgsl_device *device,
 		      timestamp, adreno_dev->ringbuffer.timestamp,
 		      adreno_dev->ringbuffer.wptr);
 	if (!adreno_dump_and_recover(device)) {
-		/* wait for idle after recovery as the
-		 * timestamp that this process wanted
-		 * to wait on may be invalid */
-		if (!adreno_idle(device, KGSL_TIMEOUT_DEFAULT))
+		/* The timestamp that this process wanted
+		 * to wait on may be invalid or expired now
+		 * after successful recovery */
 			status = 0;
 	}
 done:
