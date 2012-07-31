@@ -1042,4 +1042,3 @@ adreno_ringbuffer_restore(struct adreno_ringbuffer *rb, unsigned int *rb_buff,
 	rb->wptr += num_rb_contents;
 	adreno_ringbuffer_submit(rb);
 }
-
