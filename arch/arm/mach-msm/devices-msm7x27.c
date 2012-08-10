@@ -838,7 +838,7 @@ static struct kgsl_device_platform_data kgsl_3d0_pdata = {
 		{
 #if defined(CONFIG_MACH_LGE)
 /* we can take this punishment */
-			.gpu_freq = 245760000,
+			.gpu_freq = 0,
 			.bus_freq = 192000000,
 #else
 			.gpu_freq = 0,
