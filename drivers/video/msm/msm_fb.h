@@ -204,6 +204,7 @@ struct msm_fb_data_type {
 	void *msm_fb_backup;
         void *cpu_pm_hdl;
         int vsync_sysfs_created;
+        boolean panel_driver_on;
 };
 struct msm_fb_backup_type {
 	struct fb_info info;
