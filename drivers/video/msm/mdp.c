@@ -2243,7 +2243,8 @@ static int mdp_on(struct platform_device *pdev)
 	if (mdp_rev == MDP_REV_30) {
 
 		vsync_cntrl.dev = mfd->fbi->dev;
-		atomic_set(&vsync_cntrl.suspend, 1);
+		atomic_set(&vsync_cntrl.suspend, 0);
+		atomic_set(&vsync_cntrl.vsync_resume, 1);
 	}
 
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
@@ -2901,9 +2902,11 @@ static int mdp_probe(struct platform_device *pdev)
 
 	pdev_list[pdev_list_cnt++] = pdev;
 	mdp4_extn_disp = 0;
-
-	if (mfd->vsync_init != NULL) {
-		mfd->vsync_init(0);
+        /* vsync_init call not required for mdp3
+         * vsync_init call required for mdp4 targets*/
+	if ((mfd->vsync_init != NULL) || (mdp_rev < MDP_REV_40)) {
+		if (mdp_rev >= MDP_REV_40)
+			mfd->vsync_init(0);
 
 		if (!mfd->vsync_sysfs_created) {
 			mfd->dev_attr.attr.name = "vsync_event";
