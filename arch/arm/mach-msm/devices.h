@@ -108,4 +108,6 @@ void __init msm_fb_register_device(char *name, void *data);
 void __init msm_camera_register_device(void *, uint32_t, void *);
 extern struct platform_device msm_device_touchscreen;
 
+extern struct platform_device ion_dev;
+
 #endif
