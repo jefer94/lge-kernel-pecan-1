@@ -8,8 +8,12 @@ obj-y += audio_out.o audio_in.o audio_mp3.o audmgr.o audpp.o audrec.o
 obj-y += audio_evrc.o audio_qcelp.o audio_amrnb.o audio_aac.o audio_amrnb_in.o
 obj-y += audio_wma.o audio_voicememo.o audio_pcm.o audio_amrwb.o audio_wmapro.o
 <<<<<<< HEAD
+<<<<<<< HEAD
 obj-y += snd.o snd_adie.o vocpcm.o
 
 =======
 obj-y += snd.o snd_adie.o snd_pcm_client.o
 >>>>>>> 105ce35... msm: audio: voicepcm: Added snd pcm client driver
+=======
+obj-y += snd.o snd_adie.o snd_pcm_client.o vocpcm.o
+>>>>>>> f80cdec... Port Vocpcm Module (R7): support voice in-call recording
