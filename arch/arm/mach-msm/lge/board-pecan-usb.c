@@ -194,10 +194,13 @@ struct android_usb_platform_data android_usb_pdata = {
 	.num_compositions = ARRAY_SIZE(usb_func_composition),
 	.product_name       = "LG Android USB Device",
 	.manufacturer_name	= "LG Electronics Inc.",
-	/* Default serial number(only for development) must
-	   be 20 characters at LG WCDMA class model(because of IMEI size).
-	   Currently we just have padding ;) */
-	.serial_number		= "LG_ANDROID_P350****",
+#ifdef ICS_BUILD
+	.serial_number		= "LG_ANDROID_P350_ICS",
+#elif JB_BUILD
+         .serial_number		= "LG_ANDROID_P350_JB_",
+#else
+        .serial_number		= "LG_ANDROID_P350****",
+#endif
 	.init_product_id	= 0x618E,
 	.nluns = 1,
 };
