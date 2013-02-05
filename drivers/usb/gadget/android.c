@@ -104,14 +104,7 @@ MODULE_PARM_DESC(product_id, "USB device product id");
 #define LGE_ADB_PID				0x618E
 #define LGE_FACTORY_USB_PID 	0x6000
 
-/* LGE_CHANGE_S [hyunhui.park@lge.com] 2010-08-15, Specific PID */
-/* For model */
-#ifdef CONFIG_MACH_MSM7X27_THUNDERC
-/* ADB off UMS pid */
-#define LGE_DEFAULT_PID			0x618E
-#endif
-
-#if defined(CONFIG_MACH_MSM7X27_THUNDERG) || defined(CONFIG_MACH_MSM7X27_PECAN) || defined(CONFIG_MACH_MSM7X27_HAZEL) /* 20100911 pecan porting : temp same as thunderg by bongkyu.kim */
+#if defined(CONFIG_MACH_MSM7X27_PECAN) || defined(CONFIG_MACH_MSM7X27_HAZEL)
 #define LGE_UMS_PID				0x61C5
 #endif
 
@@ -895,24 +888,13 @@ static int adb_enable_open(struct inode *ip, struct file *fp)
 
 /* LGE_CHANGE_S [hyunhui.park@lge.com] 2010-08-15, For UMS Only */
 /* It is only for specific model, provided that UMS only mode exists */
-#if defined(CONFIG_MACH_MSM7X27_THUNDERG) || defined(CONFIG_MACH_MSM7X27_PECAN) || defined(CONFIG_MACH_MSM7X27_HAZEL) /* 20100911 pecan porting : temp same as thunderg by bongkyu.kim */
+#if defined(CONFIG_MACH_MSM7X27_PECAN) || defined(CONFIG_MACH_MSM7X27_HAZEL)
 	if (product_id == LGE_UMS_PID) {
 		pr_info("%s: adb enabling on UMS only mode, enforce to switch ADB\n",
 				__func__);
 		product_id = LGE_ADB_PID;
 	}
 #endif
-
-/* Product id of UMS is different between Thunderc and Thunerg */
-#ifdef CONFIG_MACH_MSM7X27_THUNDERC
-	if (product_id == LGE_UMS_PID) {
-		pr_info("%s: adb enabling on UMS only mode, enforce to switch ADB\n",
-				__func__);
-		product_id = LGE_ADB_PID;
-	}
-#endif
-
-/* LGE_CHANGE_E [hyunhui.park@lge.com] 2010-08-15 */
 
 	if (product_id)
 		ret = android_switch_composition(product_id);
@@ -960,23 +942,13 @@ static int adb_enable_release(struct inode *ip, struct file *fp)
 
 /* LGE_CHANGE_S [hyunhui.park@lge.com] 2010-08-15, For UMS Only */
 /* It is only for specific model, provided that UMS only mode exists */
-#if defined(CONFIG_MACH_MSM7X27_THUNDERG) || defined(CONFIG_MACH_MSM7X27_PECAN) || defined(CONFIG_MACH_MSM7X27_HAZEL) /* 20100911 pecan porting : temp same as thunderg by bongkyu.kim */
+#if defined(CONFIG_MACH_MSM7X27_PECAN) || defined(CONFIG_MACH_MSM7X27_HAZEL)
 	if (product_id == LGE_UMS_PID) {
 		pr_info("%s: adb disabling on UMS only mode, skip disabling ADB\n",
 				__func__);
 		goto out;
 	}
 #endif
-
-/* Product id of UMS is different between Thunderc and Thunerg */
-#ifdef CONFIG_MACH_MSM7X27_THUNDERC
-	if (product_id == LGE_UMS_PID) {
-		pr_info("%s: adb disabling on UMS only mode, skip disabling ADB\n",
-				__func__);
-		goto out;
-	}
-#endif
-/* LGE_CHANGE_E [hyunhui.park@lge.com] 2010-08-15 */
 
 	if (product_id)
 		ret = android_switch_composition(product_id);

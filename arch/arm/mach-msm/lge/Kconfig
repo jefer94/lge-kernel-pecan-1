@@ -21,6 +21,20 @@ config MACH_MSM7X27_HAZEL
 	help
 	  Support for the LGE MSM7x27 HAZEL board.
 
+config ICS_BUILD
+       tristate "ICS build"
+       depends on MACH_MSM7X27_PECAN
+       default n
+       help
+          Support for ICS BUILDS
+        
+config JB_BUILD
+       tristate "JB build"
+       depends on MACH_MSM7X27_PECAN
+       default n
+       help
+          Support for JB BUILDS
+
 endmenu
 
 config LGE_SUPPORT_ERS

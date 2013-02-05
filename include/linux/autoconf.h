@@ -1,7 +1,7 @@
 /*
  * Automatically generated C config: don't edit
  * Linux kernel version: 2.6.35.10
- * Tue Feb  5 18:43:38 2013
+ * Tue Feb  5 23:46:24 2013
  */
 #define AUTOCONF_INCLUDED
 #define CONFIG_VIDEO_V4L1_COMPAT 1
@@ -303,6 +303,7 @@
 #define CONFIG_KERNEL_GZIP 1
 #define CONFIG_MSM_RPCSERVERS 1
 #define CONFIG_INPUT_KEYRESET 1
+#define CONFIG_JB_BUILD 1
 #define CONFIG_MSM_IDLE_STATS_FIRST_BUCKET 62500
 #define CONFIG_LGE_HEADSET_ADC 1
 #define CONFIG_SND_JACK 1
