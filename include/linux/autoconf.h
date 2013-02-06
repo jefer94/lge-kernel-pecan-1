@@ -1,7 +1,7 @@
 /*
  * Automatically generated C config: don't edit
  * Linux kernel version: 2.6.32.9
- * Wed Feb  6 16:55:58 2013
+ * Wed Feb  6 18:21:57 2013
  */
 #define AUTOCONF_INCLUDED
 #define CONFIG_VIDEO_V4L1_COMPAT 1
@@ -529,8 +529,8 @@
 #define CONFIG_IPV6_PRIVACY 1
 #define CONFIG_HZ 100
 #define CONFIG_NETFILTER_XT_MATCH_HELPER 1
-#define CONFIG_CPU_HAS_ASID 1
 #define CONFIG_CPU_32v6K 1
+#define CONFIG_CPU_HAS_ASID 1
 #define CONFIG_BCM4329_MODULE 1
 #define CONFIG_MTD_NAND_IDS 1
 #define CONFIG_CP_ACCESS_MODULE 1
