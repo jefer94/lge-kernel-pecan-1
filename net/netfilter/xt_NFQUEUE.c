@@ -65,12 +65,12 @@ static u32 hash_v6(const struct sk_buff *skb)
 static unsigned int
 nfqueue_tg6_v1(struct sk_buff *skb, const struct xt_target_param *par)
 {
-	const struct xt_NFQ_info_v1 *info = par->targinfo;
-	u32 queue = info->queuenum;
+//	const struct xt_NFQ_info_v1 *info = par->targinfo;
+//	u32 queue = info->queuenum;
 
-	if (info->queues_total > 1)
-		queue = hash_v6(skb) % info->queues_total + queue;
-	return NF_QUEUE_NR(queue);
+//	if (info->queues_total > 1)
+//		queue = hash_v6(skb) % info->queues_total + queue;
+//	return NF_QUEUE_NR(queue);
 }
 #endif
 
