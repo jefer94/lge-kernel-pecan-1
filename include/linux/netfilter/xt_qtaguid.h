@@ -12,4 +12,3 @@
 
 #endif /* _XT_QTAGUID_MATCH_H */
 
-

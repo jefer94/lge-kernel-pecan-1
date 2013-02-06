@@ -162,4 +162,3 @@ static void __exit dscp_tg_exit(void)
 
 module_init(dscp_tg_init);
 module_exit(dscp_tg_exit);
-

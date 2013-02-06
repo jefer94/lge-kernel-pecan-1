@@ -54,4 +54,3 @@ static void __exit mark_tg_exit(void)
 
 module_init(mark_tg_init);
 module_exit(mark_tg_exit);
-
