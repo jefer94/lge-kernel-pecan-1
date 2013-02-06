@@ -1,7 +1,7 @@
 /*
  * Automatically generated C config: don't edit
  * Linux kernel version: 2.6.32.9
- * Wed Feb  6 18:21:57 2013
+ * Wed Feb  6 19:33:54 2013
  */
 #define AUTOCONF_INCLUDED
 #define CONFIG_VIDEO_V4L1_COMPAT 1
@@ -519,6 +519,7 @@
 #define CONFIG_LOCKDEP_SUPPORT 1
 #define CONFIG_MSDOS_PARTITION 1
 #define CONFIG_FB_CFB_IMAGEBLIT 1
+#define CONFIG_NETFILTER_XT_MATCH_QUOTA2 1
 #define CONFIG_IP_NF_MANGLE 1
 #define CONFIG_EARLYSUSPEND 1
 #define CONFIG_IPV6_MIP6 1
