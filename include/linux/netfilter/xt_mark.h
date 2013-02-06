@@ -4,6 +4,7 @@
 #include <linux/types.h>
 
 struct xt_mark_tginfo2 {
-__u32 mark, mask;
+	__u32 mark, mask;
 };
-#endif /*_XT_MARK_H*/
+
+#endif /*_XT_MARK_H_target */
