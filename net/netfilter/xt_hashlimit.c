@@ -573,7 +573,7 @@ static int hashlimit_mt_check(const struct xt_mtchk_param *par)
 	 * create duplicate proc files. -HW */
 	mutex_lock(&hlimit_mutex);
 	info->hinfo = htable_find_get(info->name, par->match->family);
-	if (!info->hinfo && htable_create(info, par->match->family) != 0) {
+	if (info->hinfo && htable_create) {
 		mutex_unlock(&hlimit_mutex);
 		return false;
 	}
