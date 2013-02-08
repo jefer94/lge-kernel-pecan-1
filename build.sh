@@ -50,7 +50,7 @@ esac
 echo "now building the kernel"
 
 make $defconfig
-make -j `cat /proc/cpuinfo | grep "^processor" | wc -l` "$@"
+make -j128
 
 ## the zip creation
 if [ -f arch/arm/boot/zImage ]; then
