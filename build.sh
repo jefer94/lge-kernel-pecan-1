@@ -58,6 +58,9 @@ if [ -f arch/arm/boot/zImage ]; then
 rm -f zip-creator/kernel/zImage
 rm -rf zip-creator/system/
 
+# change by keyur2maru(keyur2maru@gmail.com) "Remove old Kernel zip" 08/02/13
+rm -rf zip-creator/PecanCM*
+
 # changed antdking "clean up mkdir commands" 04/02/13
 mkdir -p zip-creator/system/lib/modules
 
