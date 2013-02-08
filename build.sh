@@ -79,5 +79,5 @@ zip -r $zipfile * -x *kernel/.gitignore*
 echo "zip saved to zip-creator/$zipfile"
 
 else # [ -f arch/arm/boot/zImage ]
-echo "the build failed so a zip won't be created"
+echo "The Build Failed So a Zip won't be Created"
 fi # [ -f arch/arm/boot/zImage ]
