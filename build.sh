@@ -49,6 +49,8 @@ esac
 
 echo "now building the kernel"
 
+export starttime=`date +%s`
+
 make $defconfig
 make -j `cat /proc/cpuinfo | grep "^processor" | wc -l` "$@"
 
@@ -70,6 +72,7 @@ cp arch/arm/boot/zImage zip-creator/kernel
 # modules
 find . -name *.ko | xargs cp -a --target-directory=zip-creator/system/lib/modules/
 
+export endtime=`date +%s`
 
 zipfile="PecanCM.x-$target-$daytime.zip"
 cd zip-creator
@@ -81,3 +84,5 @@ echo "zip saved to zip-creator/$zipfile"
 else # [ -f arch/arm/boot/zImage ]
 echo "The Build Failed So a Zip won't be Created"
 fi # [ -f arch/arm/boot/zImage ]
+
+echo "Building time: $(($endtime-$starttime)) seconds"
