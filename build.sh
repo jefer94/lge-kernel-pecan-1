@@ -29,9 +29,9 @@ export cver=`grep "^CONFIG_LOCALVERSION" $kh.config`
 
 if [ "$-PecanCM-cm-10.1" ]; then
 	export version="cm-10.1"
-elif [ "PecanCM-cm-10" ]; then
+elif [ "-PecanCM-cm-10" ]; then
 	export version="cm-10.1"
-elif [ "PecanCM-cm-9" ]; then
+elif [ "-PecanCM-cm-9" ]; then
 	export version="cm-9"
 else
 	export version="2.6.32.9"
