@@ -18,7 +18,6 @@
 #include <linux/spinlock.h>
 #include <linux/mutex.h>
 
-#include "zram_ioctl.h"
 #include "xvmalloc.h"
 
 /*
@@ -42,13 +41,13 @@ struct zobj_header {
 /*-- Configurable parameters */
 
 /* Default zram disk size: 25% of total RAM */
-static const unsigned default_disksize_perc_ram = 25;
+static const unsigned default_disksize_perc_ram = CONFIG_ZRAM_DEFAULT_PERCENTAGE;
 
 /*
  * Pages that compress to size greater than this are stored
  * uncompressed in memory.
  */
-static const unsigned max_zpage_size = PAGE_SIZE / 4 * 3;
+static const size_t max_zpage_size = PAGE_SIZE / 4 * 3;
 
 /*
  * NOTE: max_zpage_size must be less than or equal to:
@@ -62,15 +61,19 @@ static const unsigned max_zpage_size = PAGE_SIZE / 4 * 3;
 #define SECTOR_SIZE		(1 << SECTOR_SHIFT)
 #define SECTORS_PER_PAGE_SHIFT	(PAGE_SHIFT - SECTOR_SHIFT)
 #define SECTORS_PER_PAGE	(1 << SECTORS_PER_PAGE_SHIFT)
+#define ZRAM_LOGICAL_BLOCK_SHIFT 12
+#define ZRAM_LOGICAL_BLOCK_SIZE	(1 << ZRAM_LOGICAL_BLOCK_SHIFT)
+#define ZRAM_SECTOR_PER_LOGICAL_BLOCK	\
+(1 << (ZRAM_LOGICAL_BLOCK_SHIFT - SECTOR_SHIFT))
 
 /* Flags for zram pages (table[page_no].flags) */
 enum zram_pageflags {
 	/* Page is stored uncompressed */
 	ZRAM_UNCOMPRESSED,
-
+    
 	/* Page consists entirely of zeros */
 	ZRAM_ZERO,
-
+    
 	__NR_ZRAM_PAGEFLAGS,
 };
 
@@ -85,11 +88,7 @@ struct table {
 } __attribute__((aligned(4)));
 
 struct zram_stats {
-	/* basic stats */
-	size_t compr_size;	/* compressed size of pages stored -
-				 * needed to enforce memlimit */
-	/* more stats */
-#if defined(CONFIG_ZRAM_STATS)
+	u64 compr_size;		/* compressed size of pages stored */
 	u64 num_reads;		/* failed + successful */
 	u64 num_writes;		/* --do-- */
 	u64 failed_reads;	/* should NEVER! happen */
@@ -100,7 +99,6 @@ struct zram_stats {
 	u32 pages_stored;	/* no. of pages currently stored */
 	u32 good_compress;	/* % of pages with compression ratio<=50% */
 	u32 pages_expand;	/* % of incompressible pages */
-#endif
 };
 
 struct zram {
@@ -109,56 +107,29 @@ struct zram {
 	void *compress_buffer;
 	struct table *table;
 	spinlock_t stat64_lock;	/* protect 64-bit stats */
-	struct mutex lock;	/* protect compression buffers against
-				 * concurrent writes */
+	struct rw_semaphore lock; /* protect compression buffers and table
+                               * against concurrent read and writes */
 	struct request_queue *queue;
 	struct gendisk *disk;
 	int init_done;
+	/* Prevent concurrent execution of device init, reset and R/W request */
+	struct rw_semaphore init_lock;
 	/*
 	 * This is the limit on amount of *uncompressed* worth of data
 	 * we can store in a disk.
 	 */
-	size_t disksize;	/* bytes */
-
+	u64 disksize;	/* bytes */
+    
 	struct zram_stats stats;
 };
 
-/*-- */
+extern struct zram *zram_devices;
+extern unsigned int zram_num_devices;
+#ifdef CONFIG_SYSFS
+extern struct attribute_group zram_disk_attr_group;
+#endif
 
-/* Debugging and Stats */
-#if defined(CONFIG_ZRAM_STATS)
-static void zram_stat_inc(u32 *v)
-{
-	*v = *v + 1;
-}
-
-static void zram_stat_dec(u32 *v)
-{
-	*v = *v - 1;
-}
-
-static void zram_stat64_inc(struct zram *zram, u64 *v)
-{
-	spin_lock(&zram->stat64_lock);
-	*v = *v + 1;
-	spin_unlock(&zram->stat64_lock);
-}
-
-static u64 zram_stat64_read(struct zram *zram, u64 *v)
-{
-	u64 val;
-
-	spin_lock(&zram->stat64_lock);
-	val = *v;
-	spin_unlock(&zram->stat64_lock);
-
-	return val;
-}
-#else
-#define zram_stat_inc(v)
-#define zram_stat_dec(v)
-#define zram_stat64_inc(r, v)
-#define zram_stat64_read(r, v)
-#endif /* CONFIG_ZRAM_STATS */
+extern int zram_init_device(struct zram *zram);
+extern void __zram_reset_device(struct zram *zram);
 
 #endif
