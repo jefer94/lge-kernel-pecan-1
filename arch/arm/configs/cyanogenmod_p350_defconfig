@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.32.9
-# Wed Feb  6 21:00:13 2013
+# Sat Feb  9 15:02:44 2013
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -1794,6 +1794,8 @@ CONFIG_MSM_RPCSERVERS=y
 # CONFIG_IIO is not set
 # CONFIG_XVMALLOC is not set
 # CONFIG_ZRAM is not set
+# CONFIG_SNAPPY_COMPRESS is not set
+# CONFIG_SNAPPY_DECOMPRESS is not set
 # CONFIG_ZCACHE is not set
 
 #
