@@ -48,4 +48,4 @@ obj-$(CONFIG_XVMALLOC)		+= zram/
 obj-$(CONFIG_ZRAM)              += zram/
 obj-$(CONFIG_SNAPPY_COMPRESS)   += snappy/
 obj-$(CONFIG_SNAPPY_DECOMPRESS) += snappy/
-
+obj-$(CONFIG_ZCACHE)            += zcache/
