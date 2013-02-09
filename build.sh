@@ -24,6 +24,19 @@ case "$choice" in
 esac
 fi # [ -z $target ]
 
+# Ron Change "Read current kernel version"
+export cver=`grep "^CONFIG_LOCALVERSION" $kh.config`
+
+if [ "$-PecanCM-cm-10.1" ]; then
+	export version="cm-10.1"
+elif [ "PecanCM-cm-10" ]; then
+	export version="cm-10.1"
+elif [ "PecanCM-cm-9" ]; then
+	export version="cm-9"
+else
+	export version="2.6.32.9"
+fi
+
 if [ -z $compiler ]; then
 if [ -f ../arm-eabi-4.6/bin/arm-eabi-* ]; then
 export compiler=../arm-eabi-4.6/bin/arm-eabi-
@@ -74,7 +87,7 @@ find . -name *.ko | xargs cp -a --target-directory=zip-creator/system/lib/module
 
 export endtime=`date +%s`
 
-zipfile="PecanCM.x-$target-$daytime.zip"
+zipfile="PecanCM.$version-$target-$daytime.zip"
 cd zip-creator
 rm -f *.zip
 zip -r $zipfile * -x *kernel/.gitignore*
