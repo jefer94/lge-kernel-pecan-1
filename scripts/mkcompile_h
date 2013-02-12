@@ -65,8 +65,16 @@ UTS_TRUNCATE="cut -b -$UTS_LEN"
 
   echo \#define LINUX_COMPILE_TIME \"`date +%T`\"
 
+# change by antdking Change_S (defined our server names)
+if [ -n "$SERVER_NAME" ]; then
+  echo \#define LINUX_COMPILE_BY \"PecanCM\"
+  echo \#define LINUX_COMPILE_HOST \"$SERVER_NAME\"
+else #(define the default names)
   echo \#define LINUX_COMPILE_BY \"`whoami`\"
   echo \#define LINUX_COMPILE_HOST \"`hostname | $UTS_TRUNCATE`\"
+fi
+# change by antdking Change_E
+# antdking@PecanCM <anthonydking@gmail.com> (02/01/13)
 
   domain=`dnsdomainname 2> /dev/null`
   if [ -z "$domain" ]; then
