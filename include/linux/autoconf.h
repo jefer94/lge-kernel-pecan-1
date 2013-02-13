@@ -1,7 +1,7 @@
 /*
  * Automatically generated C config: don't edit
- * Linux kernel version: 2.6.35.10
- * Sun Feb  3 11:16:44 2013
+ * Linux kernel version: 2.6.32.9
+ * Tue Feb 12 14:52:52 2013
  */
 #define AUTOCONF_INCLUDED
 #define CONFIG_VIDEO_V4L1_COMPAT 1
@@ -403,6 +403,7 @@
 #define CONFIG_FB_MSM_MDP30 1
 #define CONFIG_NETFILTER_XT_MATCH_HL 1
 #define CONFIG_INET_ESP 1
+#define CONFIG_SUSPEND_NVS 1
 #define CONFIG_NF_NAT_PPTP 1
 #define CONFIG_MSM7X00A_SLEEP_MODE 0
 #define CONFIG_SHMEM 1
@@ -751,6 +752,7 @@
 #define CONFIG_VFP 1
 #define CONFIG_NLS 1
 #define CONFIG_CRYPTO_ALGAPI 1
+#define CONFIG_PM_OPS 1
 #define CONFIG_MSM_RPC_PROC_COMM_TEST 1
 #define CONFIG_MTD_CFI_I1 1
 #define CONFIG_USER_WAKELOCK 1
