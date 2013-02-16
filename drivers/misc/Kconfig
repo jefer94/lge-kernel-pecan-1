@@ -404,6 +404,12 @@ config LGE_AT_CMD_DEVICE
 	help
 	 Choose if use AT_CMD device used for sending uevent to user space
 
+config FRANDOM
+	bool "Frandom Support"
+	default y
+	help
+		Say Y here to enable Frandom Module generation
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"
