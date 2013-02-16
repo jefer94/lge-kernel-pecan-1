@@ -68,8 +68,20 @@ EXTRA_CFLAGS = \
 	-DANDROID_SPECIFIC \
 	-DDONGLEOVERLAYS \
 	-DMMC_SDIO_ABORT \
-	-Wno-error=unused-but-set-variable \
-	-Wno-error=array-bounds
+
+#ifneq ($(TARGET_USE_LEGACY_TOOLCHAIN),*)
+ifndef TARGET_USE_LEGACY_TOOLCHAIN
+  # gcc-4.6.1 warns a lot more than previous compilers.
+  # The following is the minimal set of warnings that need to not error out
+  # the build for it to succeed. -Wno-error would also work, but this
+  # explicit list allows them to be fixed in smaller chunks.
+  #
+  # in your build set up, define "TARGET_USE_LEGACY_TOOLCHAIN" as anything
+  # this has been added into jenkins for ics already
+
+  DHDCFLAGS += -Wno-error=unused-but-set-variable
+  DHDCFLAGS += -Wno-error=array-bounds
+endif
 #-DAP -DAPSTA_PINGTEST \
 
 #	\
