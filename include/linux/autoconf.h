@@ -1,7 +1,7 @@
 /*
  * Automatically generated C config: don't edit
  * Linux kernel version: 2.6.32.9
- * Sat Feb 16 15:17:50 2013
+ * Sat Feb 16 15:35:18 2013
  */
 #define AUTOCONF_INCLUDED
 #define CONFIG_VIDEO_V4L1_COMPAT 1
@@ -719,7 +719,6 @@
 #define CONFIG_INITRAMFS_SOURCE ""
 #define CONFIG_HAVE_KERNEL_GZIP 1
 #define CONFIG_VIDEO_V4L2 1
-#define CONFIG_SWEEP2WAKE 1
 #define CONFIG_MTD_LAZYECCSTATS 1
 #define CONFIG_CRYPTO_HW 1
 #define CONFIG_NFS_FS 1

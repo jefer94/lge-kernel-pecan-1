@@ -356,6 +356,13 @@ config TSIF_DEBUG
 	---help---
 	  This turns on debugging information for the tsif driver
 
+config GENERIC_BLN
+    bool "Generic BLN support for backlight notification"
+    default y
+    help
+      Say Y here to enable the backlight notification
+      for android led-notification (modified liblight needed)
+
 config PMIC8058_PWM
 	tristate "Qualcomm PM8058 PWM support"
 	depends on PMIC8058
