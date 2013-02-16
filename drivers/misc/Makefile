@@ -42,5 +42,6 @@ obj-$(CONFIG_PMIC8058_PWM) += pmic8058-pwm.o
 obj-$(CONFIG_PMIC8058_VIBRATOR) += pmic8058-vibrator.o
 obj-$(CONFIG_PMIC8058_NFC) += pmic8058-nfc.o
 
+obj-$(CONFIG_SWEEP2WAKE)        += sweep2wake.o
 obj-$(CONFIG_LGE_AT_CMD_DEVICE) += lge_ats_at_class.o
 obj-$(CONFIG_LGE_AT_CMD_DEVICE) += lge_ats_at.o

@@ -35,6 +35,9 @@
 #include "touch_mcs7000_ioctl.h"
 #include <linux/i2c-gpio.h>
 #include <mach/board_lge.h>
+#ifdef CONFIG_SWEEP2WAKE
+#include <linux/sweep2wake.h>
+#endif
 
 #include <mach/vreg.h>
 struct vreg {
@@ -58,7 +61,7 @@ static void mcs7000_late_resume(struct early_suspend *h);
  * 2011-01-19, by jinkyu.choi@lge.com
  */
 
-#if defined (CONFIG_MACH_MSM7X27_JUMP) || defined(CONFIG_MACH_MSM7X27_PECAN) 
+#if defined(CONFIG_MACH_MSM7X27_PECAN) 
 #define SUPPORT_TOUCH_KEY 1
 #else
 #define SUPPORT_TOUCH_KEY 0
@@ -71,9 +74,7 @@ static void mcs7000_late_resume(struct early_suspend *h);
 #define TOUCH_BACK      248
 #endif
 
-#if defined (CONFIG_MACH_MSM7X27_JUMP)
-#define TS_POLLING_TIME 2 /* msec */
-#elif defined(CONFIG_MACH_MSM7X27_PECAN) 
+#if defined(CONFIG_MACH_MSM7X27_PECAN) 
 #define TS_POLLING_TIME 1 
 #else
 #define TS_POLLING_TIME 1 /* msec */
@@ -109,6 +110,11 @@ static void mcs7000_late_resume(struct early_suspend *h);
 #define MCS7000_TS_MAX_HW_VERSION				0x40
 #define MCS7000_TS_MAX_FW_VERSION				0x20
 
+#ifdef CONFIG_SWEEP2WAKE
+bool suspended = false;
+static DEFINE_MUTEX(sw_suspended_mutex);
+#endif
+
 struct mcs7000_ts_device {
 	struct i2c_client *client;
 	struct input_dev *input_dev;
@@ -141,7 +147,7 @@ enum{
 	MAX_TOUCH_TYPE
 };
 
-#if defined(CONFIG_MACH_MSM7X27_PECAN) || defined(CONFIG_MACH_MSM7X27_HAZEL) || defined(CONFIG_MACH_MSM7X27_JUMP)
+#if defined(CONFIG_MACH_MSM7X27_PECAN) || defined(CONFIG_MACH_MSM7X27_HAZEL)
 enum{
 	NO_KEY_TOUCHED = 0,
 	KEY_MENU_TOUCHED = 1, 
