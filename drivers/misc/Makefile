@@ -48,5 +48,6 @@ obj-m += frandom.o
 endif
 
 obj-$(CONFIG_SWEEP2WAKE)        += sweep2wake.o
+obj-$(CONFIG_FSYNC_CONTROL)     += fsync_control.o
 obj-$(CONFIG_LGE_AT_CMD_DEVICE) += lge_ats_at_class.o
 obj-$(CONFIG_LGE_AT_CMD_DEVICE) += lge_ats_at.o

@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.32.9
-# Sat Feb 16 15:44:25 2013
+# Sat Feb 16 15:54:08 2013
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -987,6 +987,7 @@ CONFIG_UID_STAT=y
 # CONFIG_HAPTIC_ISA1200 is not set
 CONFIG_LGE_AT_CMD_DEVICE=y
 # CONFIG_FRANDOM is not set
+# CONFIG_FSYNC_CONTROL is not set
 # CONFIG_C2PORT is not set
 
 #
