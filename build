@@ -72,13 +72,23 @@ cp arch/arm/boot/zImage zip-creator/kernel
 # modules
 find . -name *.ko | xargs cp -a --target-directory=zip-creator/system/lib/modules/
 
-
+if [ -z "$BUILD_ID" ]; then
 zipfile="PecanCM.35-$target-$daytime.zip"
+else
+zipfile="PecanCM.35-$target-$BUILD_ID.zip"
+fi
+
 cd zip-creator
 rm -f *.zip
 zip -r $zipfile * -x *kernel/.gitignore*
 
+if [ -n "$BUILD_ID" ]; then
+mkdir -p ../built
+cp PecanCM*.zip ../built/
+fi
+
 echo "zip saved to zip-creator/$zipfile"
+
 
 else # [ -f arch/arm/boot/zImage ]
 echo "the build failed so a zip won't be created"
