@@ -93,7 +93,7 @@ export endtime=`date +%s`
 zipfile="PecanCM.$version-$target-$daytime.zip"
 cd zip-creator
 
-rm -f *.zipe
+rm -f *.zip
 zip -r $zipfile * -x *kernel/.gitignore*
 
 echo "zip saved to zip-creator/$zipfile"
