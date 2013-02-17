@@ -70,12 +70,12 @@ make -j `cat /proc/cpuinfo | grep "^processor" | wc -l` "$@"
 ## the zip creation
 if [ -f arch/arm/boot/zImage ]; then
 
-mkdir builds \\ Change by Keyur maru 17/02/13   \\
+mkdir builds 
 rm -f zip-creator/kernel/zImage
 rm -rf zip-creator/system/
 
 # change by keyur2maru(keyur2maru@gmail.com) "Remove old Kernel zip" 08/02/13
-cp zip-creator/PecanCM* builds/     \\ change by keyur maru 17/02/13  \\
+cp zip-creator/PecanCM* builds/    
 rm -rf zip-creator/PecanCM*
 
 
