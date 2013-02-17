@@ -27,6 +27,12 @@ config ANDROID_PMEM_KAPI_TEST
 	depends on ANDROID_PMEM
 	default m
 
+config SWEEP2WAKE
+	bool "Support for sweep2wake"
+	default n
+	help
+	  Say Y here to enable sweep2wake
+
 config ANDROID_VIBRATOR
     bool "Android vibrator support"
 	depends on ANDROID_TIMED_OUTPUT
@@ -350,6 +356,13 @@ config TSIF_DEBUG
 	---help---
 	  This turns on debugging information for the tsif driver
 
+config GENERIC_BLN
+    bool "Generic BLN support for backlight notification"
+    default y
+    help
+      Say Y here to enable the backlight notification
+      for android led-notification (modified liblight needed)
+
 config PMIC8058_PWM
 	tristate "Qualcomm PM8058 PWM support"
 	depends on PMIC8058
@@ -390,6 +403,18 @@ config LGE_AT_CMD_DEVICE
 	depends on MACH_LGE
 	help
 	 Choose if use AT_CMD device used for sending uevent to user space
+
+config FRANDOM
+	bool "Frandom Support"
+	default y
+	help
+		Say Y here to enable Frandom Module generation
+
+config FSYNC_CONTROL
+	bool "Support for FSync Control"
+	default y
+	help
+	  Say Y here to enable FSync Control
 
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
