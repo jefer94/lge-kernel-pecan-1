@@ -17,6 +17,7 @@
 #include <linux/spinlock.h>
 #include <asm/atomic.h>
 
+#include <linux/netlink.h>
 #include <linux/netfilter/x_tables.h>
 #include <linux/netfilter/xt_quota2.h>
 #ifdef CONFIG_NETFILTER_XT_MATCH_QUOTA2_LOG
