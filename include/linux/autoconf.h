@@ -1,7 +1,7 @@
 /*
  * Automatically generated C config: don't edit
  * Linux kernel version: 2.6.32.9
- * Wed Feb 20 01:16:23 2013
+ * Wed Feb 20 01:21:54 2013
  */
 #define AUTOCONF_INCLUDED
 #define CONFIG_VIDEO_V4L1_COMPAT 1
@@ -717,6 +717,7 @@
 #define CONFIG_IP6_NF_TARGET_HL 1
 #define CONFIG_XFRM_USER 1
 #define CONFIG_CPU_FREQ_GOV_POWERSAVE 1
+#define CONFIG_NETFILTER_XT_TARGET_IDLETIMER 1
 #define CONFIG_VIDEO_V4L1 1
 #define CONFIG_MMC 1
 #define CONFIG_MSM_DEBUG_UART_NONE 1
