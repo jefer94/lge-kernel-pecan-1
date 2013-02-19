@@ -70,11 +70,14 @@ make -j `cat /proc/cpuinfo | grep "^processor" | wc -l` "$@"
 ## the zip creation
 if [ -f arch/arm/boot/zImage ]; then
 
+mkdir builds 
 rm -f zip-creator/kernel/zImage
 rm -rf zip-creator/system/
 
 # change by keyur2maru(keyur2maru@gmail.com) "Remove old Kernel zip" 08/02/13
+cp zip-creator/PecanCM* builds/    
 rm -rf zip-creator/PecanCM*
+
 
 # changed antdking "clean up mkdir commands" 04/02/13
 mkdir -p zip-creator/system/lib/modules
@@ -89,6 +92,7 @@ export endtime=`date +%s`
 
 zipfile="PecanCM.$version-$target-$daytime.zip"
 cd zip-creator
+
 rm -f *.zip
 zip -r $zipfile * -x *kernel/.gitignore*
 
