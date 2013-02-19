@@ -1,7 +1,7 @@
 /*
  * Automatically generated C config: don't edit
  * Linux kernel version: 2.6.32.9
- * Tue Feb 19 16:18:06 2013
+ * Wed Feb 20 01:16:23 2013
  */
 #define AUTOCONF_INCLUDED
 #define CONFIG_VIDEO_V4L1_COMPAT 1
@@ -780,6 +780,7 @@
 #define CONFIG_NETFILTER_XT_MATCH_QTAGUID 1
 #define CONFIG_MSM_ONCRPCROUTER 1
 #define CONFIG_IOSCHED_AS 1
+#define CONFIG_IFACE_STAT 1
 #define CONFIG_IP_NF_TARGET_LOG 1
 #define CONFIG_NF_CT_PROTO_UDPLITE 1
 #define CONFIG_BASE_SMALL 0
