@@ -1,7 +1,7 @@
 /*
  * Automatically generated C config: don't edit
  * Linux kernel version: 2.6.32.9
- * Wed Feb 20 01:21:54 2013
+ * Wed Feb 20 01:39:23 2013
  */
 #define AUTOCONF_INCLUDED
 #define CONFIG_VIDEO_V4L1_COMPAT 1
@@ -603,6 +603,7 @@
 #define CONFIG_HAS_IOMEM 1
 #define CONFIG_ANDROID_RAM_CONSOLE 1
 #define CONFIG_NETFILTER_XT_MATCH_POLICY 1
+#define CONFIG_NETFILTER_XT_TARGET_NFLOG 1
 #define CONFIG_FW_LOADER 1
 #define CONFIG_NETFILTER_XT_MATCH_MAC 1
 #define CONFIG_NLS_ASCII 1
