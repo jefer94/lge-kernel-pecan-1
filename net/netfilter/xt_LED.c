@@ -30,6 +30,8 @@
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Adam Nielsen <a.nielsen@shikadi.net>");
 MODULE_DESCRIPTION("Xtables: trigger LED devices on packet match");
+MODULE_ALIAS("ipt_LED");
+MODULE_ALIAS("ip6t_LED");
 
 /*
  * This is declared in here (the kernel module) only, to avoid having these
