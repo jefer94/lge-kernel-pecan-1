@@ -153,7 +153,7 @@ static u8 hostaddr[ETH_ALEN];
 struct android_dev {
 	struct usb_gadget *gadget;
 	struct usb_composite_dev *cdev;
-
+      
 	int version;
 
 	int adb_enabled;
