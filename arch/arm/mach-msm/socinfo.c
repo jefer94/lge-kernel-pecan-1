@@ -475,3 +475,26 @@ int __init socinfo_init(void)
 
 	return 0;
 }
+
+static char socinfo_baseband[BUILD_ID_LENGTH+1];
+static char socinfo_model[5+1];
+
+const char *socinfo_get_baseband(void)
+{
+	BUG_ON(socinfo == NULL);
+
+	if (!socinfo_baseband[0])
+		memcpy(socinfo_baseband, socinfo_get_build_id(), BUILD_ID_LENGTH);
+
+	return socinfo_baseband;
+}
+
+const char *socinfo_get_model(void)
+{
+	BUG_ON(socinfo == NULL);
+
+	if (!socinfo_model[0])
+		memcpy(socinfo_model, socinfo_get_build_id(), 5);
+
+	return socinfo_model;
+}
