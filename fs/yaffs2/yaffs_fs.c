@@ -185,8 +185,12 @@ static int yaffs_file_flush(struct file *file, fl_owner_t id);
 static int yaffs_file_flush(struct file *file);
 #endif
 
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 34))
+static int yaffs_sync_object(struct file *file, int datasync);
+#else
 static int yaffs_sync_object(struct file *file, struct dentry *dentry,
 				int datasync);
+#endif
 
 static int yaffs_readdir(struct file *f, void *dirent, filldir_t filldir);
 
@@ -1564,12 +1568,19 @@ static int yaffs_symlink(struct inode *dir, struct dentry *dentry,
 	return -ENOMEM;
 }
 
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 34))
+static int yaffs_sync_object(struct file *file, int datasync)
+#else
 static int yaffs_sync_object(struct file *file, struct dentry *dentry,
 				int datasync)
+#endif
 {
 
 	yaffs_Object *obj;
 	yaffs_Device *dev;
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 34))
+	struct dentry *dentry = file->f_path.dentry;
+#endif
 
 	obj = yaffs_DentryToObject(dentry);
 
@@ -2172,7 +2183,7 @@ static struct super_block *yaffs_internal_read_super(int yaffsVersion,
 
 	if (!readOnly && !(mtd->flags & MTD_WRITEABLE)) {
 		readOnly = 1;
-		printk(KERN_INFO, "yaffs: mtd is read only, setting superblock read only\n");
+		printk(KERN_INFO "yaffs: mtd is read only, setting superblock read only\n");
 		sb->s_flags |= MS_RDONLY;
 	}
 
