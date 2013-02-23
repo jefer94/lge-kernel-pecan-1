@@ -1034,9 +1034,10 @@ static int mtp_function_setup(struct usb_function *f,
 	u16	w_length = le16_to_cpu(ctrl->wLength);
 	unsigned long	flags;
 
-	/* do nothing if we are disabled */
-	if (dev->function.disabled)
-		return value;
+	/* readers may be blocked waiting for us to go online */
+	wake_up(&dev->read_wq);
+
+	VDBG(cdev, "%s disabled\n", dev->function.name);
 
 	VDBG(cdev, "mtp_function_setup "
 			"%02x.%02x v%04x i%04x l%u\n",
@@ -1264,7 +1265,7 @@ static struct android_usb_function mtp_function = {
 static int __init init(void)
 {
 	printk(KERN_INFO "f_mtp init\n");
-	android_register_function(&mtp_function);
+        misc_register(&mtp_function);
 	return 0;
 }
 module_init(init);
