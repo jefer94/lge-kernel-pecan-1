@@ -1265,6 +1265,7 @@ static struct android_usb_function mtp_function = {
 static int __init init(void)
 {
 	printk(KERN_INFO "f_mtp init\n");
+        misc_register(&mtp_function);
 	return 0;
 }
 module_init(init);
