@@ -89,11 +89,8 @@ int mdp_lcdc_on(struct platform_device *pdev)
 	struct msm_fb_data_type *mfd;
 	struct mdp4_overlay_pipe *pipe;
 	int ret;
-	int yres, remainder;
-	struct msm_panel_info *panel_info;
 
 	mfd = (struct msm_fb_data_type *)platform_get_drvdata(pdev);
-	panel_info = &mfd->panel_info;
 
 	if (!mfd)
 		return -ENODEV;
