@@ -156,6 +156,15 @@ int msm_fb_debugfs_file_index;
 struct dentry *msm_fb_debugfs_root;
 struct dentry *msm_fb_debugfs_file[MSM_FB_MAX_DBGFS];
 
+DEFINE_MUTEX(msm_fb_notify_update_sem);
+void msmfb_no_update_notify_timer_cb(unsigned long data)
+{
+	struct msm_fb_data_type *mfd = (struct msm_fb_data_type *)data;
+	if (!mfd)
+		pr_err("%s mfd NULL\n", __func__);
+	complete(&mfd->msmfb_no_update_notify);
+}
+
 struct dentry *msm_fb_get_debugfs_root(void)
 {
 	if (msm_fb_debugfs_root == NULL)
@@ -382,7 +391,6 @@ static int msm_fb_probe(struct platform_device *pdev)
 #ifdef CONFIG_FB_MSM_OVERLAY
 	mfd->overlay_play_enable = 1;
 #endif
-
 	rc = msm_fb_register(mfd);
 	if (rc)
 		return rc;
@@ -442,6 +450,11 @@ static int msm_fb_remove(struct platform_device *pdev)
 	if (mfd->dma_hrtimer.function)
 		hrtimer_cancel(&mfd->dma_hrtimer);
 
+	if (mfd->msmfb_no_update_notify_timer.function)
+		del_timer(&mfd->msmfb_no_update_notify_timer);
+	complete(&mfd->msmfb_no_update_notify);
+	complete(&mfd->msmfb_update_notify);
+
 	/* remove /dev/fb* */
 	unregister_framebuffer(mfd->fbi);
 
@@ -500,6 +513,10 @@ static int msm_fb_suspend_sub(struct msm_fb_data_type *mfd)
 
 	if ((!mfd) || (mfd->key != MFD_KEY))
 		return 0;
+
+	if (mfd->msmfb_no_update_notify_timer.function)
+		del_timer(&mfd->msmfb_no_update_notify_timer);
+	complete(&mfd->msmfb_no_update_notify);
 
 	/*
 	 * suspend this channel
@@ -1230,6 +1247,13 @@ static int msm_fb_register(struct msm_fb_data_type *mfd)
 	init_completion(&mfd->refresher_comp);
 	init_MUTEX(&mfd->sem);
 
+	init_timer(&mfd->msmfb_no_update_notify_timer);
+	mfd->msmfb_no_update_notify_timer.function =
+			msmfb_no_update_notify_timer_cb;
+	mfd->msmfb_no_update_notify_timer.data = (unsigned long)mfd;
+	init_completion(&mfd->msmfb_update_notify);
+	init_completion(&mfd->msmfb_no_update_notify);
+
 	fbram_offset = PAGE_ALIGN((int)fbram)-(int)fbram;
 	fbram += fbram_offset;
 	fbram_phys += fbram_offset;
@@ -1599,6 +1623,15 @@ static int msm_fb_pan_display(struct fb_var_screeninfo *var,
 
 		dirtyPtr = &dirty;
 	}
+	complete(&mfd->msmfb_update_notify);
+	mutex_lock(&msm_fb_notify_update_sem);
+	if (mfd->msmfb_no_update_notify_timer.function)
+		del_timer(&mfd->msmfb_no_update_notify_timer);
+
+	mfd->msmfb_no_update_notify_timer.expires =
+				jiffies + ((1000 * HZ) / 1000);
+	add_timer(&mfd->msmfb_no_update_notify_timer);
+	mutex_unlock(&msm_fb_notify_update_sem);
 
 	down(&msm_fb_pan_sem);
 	mdp_set_dma_pan_info(info, dirtyPtr,
@@ -2698,6 +2731,16 @@ static int msmfb_overlay_play(struct fb_info *info, unsigned long *argp)
 		return ret;
 	}
 
+        complete(&mfd->msmfb_update_notify);
+	mutex_lock(&msm_fb_notify_update_sem);
+	if (mfd->msmfb_no_update_notify_timer.function)
+		del_timer(&mfd->msmfb_no_update_notify_timer);
+
+	mfd->msmfb_no_update_notify_timer.expires =
+				jiffies + ((1000 * HZ) / 1000);
+	add_timer(&mfd->msmfb_no_update_notify_timer);
+	mutex_unlock(&msm_fb_notify_update_sem);
+
 	ret = mdp4_overlay_play(info, &req, &p_src_file);
 
 #ifdef CONFIG_ANDROID_PMEM
@@ -2845,6 +2888,29 @@ static void msmfb_set_color_conv(struct mdp_ccs *p)
 }
 #endif
 
+static int msmfb_notify_update(struct fb_info *info, unsigned long *argp)
+{
+	int ret, notify;
+	struct msm_fb_data_type *mfd = (struct msm_fb_data_type *)info->par;
+
+	ret = copy_from_user(&notify, argp, sizeof(int));
+	if (ret) {
+		pr_err("%s:ioctl failed\n", __func__);
+		return ret;
+	}
+
+	if (notify > NOTIFY_UPDATE_STOP)
+		return -EINVAL;
+
+	if (notify == NOTIFY_UPDATE_START) {
+		INIT_COMPLETION(mfd->msmfb_update_notify);
+		wait_for_completion_interruptible(&mfd->msmfb_update_notify);
+	} else {
+		INIT_COMPLETION(mfd->msmfb_no_update_notify);
+		wait_for_completion_interruptible(&mfd->msmfb_no_update_notify);
+	}
+	return 0;
+}
 
 static int msm_fb_ioctl(struct fb_info *info, unsigned int cmd,
 			unsigned long arg)
@@ -3061,6 +3127,10 @@ static int msm_fb_ioctl(struct fb_info *info, unsigned int cmd,
 				sizeof(fb_page_protection));
 		if (ret)
 				return ret;
+		break;
+
+	case MSMFB_NOTIFY_UPDATE:
+		ret = msmfb_notify_update(info, argp);
 		break;
 
 	case MSMFB_SET_PAGE_PROTECTION:
