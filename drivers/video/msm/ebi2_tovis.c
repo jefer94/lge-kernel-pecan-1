@@ -299,7 +299,7 @@ static void do_tovis_init()
 
 	EBI2_WRITE16C(DISP_CMD_PORT,0xb1); // Low power mode control
 	EBI2_WRITE16D(DISP_DATA_PORT,0x0);
-	
+
 	EBI2_WRITE16C(DISP_CMD_PORT,0xb3); // frame memory & I/F setting
 	EBI2_WRITE16D(DISP_DATA_PORT,0x02);
 	EBI2_WRITE16D(DISP_DATA_PORT,0x00);
@@ -461,7 +461,7 @@ static void do_tovis_init()
 	EBI2_WRITE16D(DISP_DATA_PORT,0xca); // 7
 	EBI2_WRITE16D(DISP_DATA_PORT,0x0a); // 8
 	EBI2_WRITE16D(DISP_DATA_PORT,0x0c); // 9
-	
+
 	EBI2_WRITE16C(DISP_CMD_PORT,0xd8); // Sequencer Control
 	EBI2_WRITE16D(DISP_DATA_PORT,0x77); // 1
 	EBI2_WRITE16D(DISP_DATA_PORT,0x77); // 2
@@ -691,7 +691,7 @@ static void do_ilitek_init()
 
 	EBI2_WRITE16C(DISP_CMD_PORT, 0xc1);
 	EBI2_WRITE16D(DISP_DATA_PORT,0x01); // 1
-	
+
 	EBI2_WRITE16C(DISP_CMD_PORT, 0xc2);
 	EBI2_WRITE16D(DISP_DATA_PORT,0x22); // 1
 
@@ -841,7 +841,7 @@ static int tovis_qvga_disp_on(struct platform_device *pdev)
 	if (!display_on) {
 		msm_fb_ebi2_power_save(1);
 		mdelay(10);
-		
+
 		gpio_set_value(102, 0);
 		mdelay(1);
 		gpio_set_value(102, 1);
@@ -908,7 +908,7 @@ ssize_t tovis_qvga_store_onoff(struct device *dev, struct device_attribute *attr
 {
 	int onoff;
 	sscanf(buf, "%d", &onoff);
-	
+
 	if (onoff) {
 		tovis_qvga_panel_data.on(&this_device);
 	} else {
@@ -923,7 +923,7 @@ DEVICE_ATTR(lcd_onoff, 0666, tovis_qvga_show_onoff, tovis_qvga_store_onoff);
 static int __init tovis_qvga_probe(struct platform_device *pdev)
 {
 	int ret;
-	
+
 	if (pdev->id == 0) {
 		return 0;
 	}
@@ -933,7 +933,7 @@ static int __init tovis_qvga_probe(struct platform_device *pdev)
 	if (ret) {
 		printk("tovis_qvga_probe device_creat_file failed!!!\n");
 	}
-	
+
 	return 0;
 }
 
@@ -952,12 +952,12 @@ static int __init tovis_qvga_init(void)
 	ret = platform_driver_register(&this_driver);
 	if (!ret) {
 		int lcd_maker_id = 1; /* 1 : BOE, 0 : LGD */
-		
+
 		if (lge_bd_rev == LGE_REV_C) {
 			// check
 			gpio_tlmm_config(GPIO_CFG(38, 0,
 				GPIO_INPUT, GPIO_PULL_UP,GPIO_2MA), GPIO_ENABLE);
-			
+
 			gpio_set_value(32, 0);
 			gpio_set_value(33, 1);
 			gpio_set_value(36, 1);
@@ -1021,4 +1021,3 @@ static int __init tovis_qvga_init(void)
 }
 
 module_init(tovis_qvga_init);
-

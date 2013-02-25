@@ -1,4 +1,4 @@
-/* Copyright (c) 2008-2010, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2008-2011, Code Aurora Forum. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -40,6 +40,12 @@
 #include <linux/msm_mdp.h>
 
 #include <mach/hardware.h>
+
+#ifdef CONFIG_MSM_BUS_SCALING
+#include <mach/msm_bus.h>
+#include <mach/msm_bus_board.h>
+#endif
+
 #include <linux/io.h>
 
 #include <asm/system.h>
@@ -47,7 +53,13 @@
 
 #include "msm_fb_panel.h"
 
-extern int mdp_rev;
+extern uint32 mdp_hw_revision;
+extern ulong mdp4_display_intf;
+
+#define MDP4_REVISION_V1		0
+#define MDP4_REVISION_V2		1
+#define MDP4_REVISION_V2_1	2
+#define MDP4_REVISION_NONE	0xffffffff
 
 #ifdef BIT
 #undef BIT
@@ -206,10 +218,12 @@ typedef struct mdp_ibuf_s {
 
 struct mdp_dma_data {
 	boolean busy;
+	boolean dmap_busy;
 	boolean waiting;
 	struct mutex ov_mutex;
 	struct semaphore mutex;
 	struct completion comp;
+	struct completion dmap_comp;
 };
 
 #define MDP_CMD_DEBUG_ACCESS_BASE   (MDP_BASE+0x10000)
@@ -518,7 +532,7 @@ struct mdp_dma_data {
 #define DMA_DSTC1B_5BITS BIT(2)
 #define DMA_DSTC2R_5BITS BIT(4)
 
-// #define DMA_PACK_TIGHT                      BIT(6) // pecan
+#define DMA_PACK_TIGHT                      BIT(6)
 #define DMA_PACK_LOOSE                      0
 #define DMA_PACK_ALIGN_LSB                  0
 /*
@@ -536,7 +550,6 @@ struct mdp_dma_data {
 #define DMA_IBUF_FORMAT_xRGB8888_OR_ARGB8888  BIT(26)
 
 #ifdef CONFIG_FB_MSM_MDP22
-#define DMA_PACK_TIGHT                      BIT(6) // pecan 
 #define DMA_OUT_SEL_MDDI BIT(14)
 #define DMA_AHBM_LCD_SEL_PRIMARY 0
 #define DMA_AHBM_LCD_SEL_SECONDARY BIT(15)
@@ -550,10 +563,10 @@ struct mdp_dma_data {
 #define DMA_IBUF_NONCONTIGUOUS BIT(21)
 #else
 #define DMA_OUT_SEL_MDDI                    BIT(19)
-#define DMA_PACK_TIGHT                      0  // pecan
 #define DMA_AHBM_LCD_SEL_PRIMARY            0
 #define DMA_AHBM_LCD_SEL_SECONDARY          0
 #define DMA_IBUF_C3ALPHA_EN                 0
+#define DMA_BUF_FORMAT_RGB565		BIT(25)
 #define DMA_DITHER_EN                       BIT(24)	/* dma_p */
 #define DMA_DEFLKR_EN                       BIT(24)	/* dma_e */
 #define DMA_MDDI_DMAOUT_LCD_SEL_PRIMARY     0
@@ -667,15 +680,31 @@ int mdp_lcdc_on(struct platform_device *pdev);
 int mdp_lcdc_off(struct platform_device *pdev);
 void mdp_lcdc_update(struct msm_fb_data_type *mfd);
 int mdp_hw_cursor_update(struct fb_info *info, struct fb_cursor *cursor);
+int mdp_hw_cursor_sync_update(struct fb_info *info, struct fb_cursor *cursor);
 void mdp_enable_irq(uint32 term);
 void mdp_disable_irq(uint32 term);
 void mdp_disable_irq_nosync(uint32 term);
-int mdp_get_bytes_per_pixel(uint32_t format);
+int mdp_get_bytes_per_pixel(uint32_t format,
+				 struct msm_fb_data_type *mfd);
+int mdp_set_core_clk(uint16 perf_level);
+unsigned long mdp_get_core_clk(void);
+unsigned long mdp_perf_level2clk_rate(uint32 perf_level);
+
+#ifdef CONFIG_MSM_BUS_SCALING
+int mdp_bus_scale_update_request(uint32_t index);
+#endif
 
 #ifdef MDP_HW_VSYNC
 void mdp_hw_vsync_clk_enable(struct msm_fb_data_type *mfd);
 void mdp_hw_vsync_clk_disable(struct msm_fb_data_type *mfd);
 #endif
 
+#ifdef CONFIG_DEBUG_FS
+int mdp_debugfs_init(void);
+#endif
+
 void mdp_dma_s_update(struct msm_fb_data_type *mfd);
+int mdp_start_histogram(struct fb_info *info);
+int mdp_stop_histogram(struct fb_info *info);
+int mdp_histogram_ctrl(boolean en);
 #endif /* MDP_H */

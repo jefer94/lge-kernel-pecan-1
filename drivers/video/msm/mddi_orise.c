@@ -1,4 +1,4 @@
-/* Copyright (c) 2010, 2012 Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2010, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -39,7 +39,6 @@ static void mddi_orise_prim_lcd_init(void)
 }
 
 static struct platform_driver this_driver = {
-	.probe  = mddi_orise_probe,
 	.driver = {
 		.name   = "mddi_orise",
 	},
@@ -100,14 +99,14 @@ static int __init mddi_orise_init(void)
 			return 0;
 	}
 #endif
-	ret = platform_driver_register(&this_driver);
+	ret = platform_driver_probe(&this_driver, mddi_orise_probe);
 	if (!ret) {
 		pinfo = &mddi_orise_panel_data.panel_info;
 		pinfo->xres = 480;
 		pinfo->yres = 800;
+		MSM_FB_SINGLE_MODE_PANEL(pinfo);
 		pinfo->type = MDDI_PANEL;
 		pinfo->pdest = DISPLAY_1;
-		pinfo->mddi.is_type1 = TRUE;
 		pinfo->mddi.vdopkt = MDDI_DEFAULT_PRIM_PIX_ATTR;
 		pinfo->wait_cycle = 0;
 		pinfo->bpp = 18;

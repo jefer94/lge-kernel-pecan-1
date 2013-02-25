@@ -87,8 +87,10 @@ static int mipi_toshiba_lcd_on(struct platform_device *pdev)
 	if (mfd->key != MFD_KEY)
 		return -EINVAL;
 
-	mipi_dsi_cmds_tx(&toshiba_tx_buf, toshiba_display_on_cmds,
+	mutex_lock(&mfd->dma->ov_mutex);
+	mipi_dsi_cmds_tx(mfd, &toshiba_tx_buf, toshiba_display_on_cmds,
 			ARRAY_SIZE(toshiba_display_on_cmds));
+	mutex_unlock(&mfd->dma->ov_mutex);
 
 	return 0;
 }
@@ -104,18 +106,15 @@ static int mipi_toshiba_lcd_off(struct platform_device *pdev)
 	if (mfd->key != MFD_KEY)
 		return -EINVAL;
 
-	/* change to DSI_CMD_MODE since it needed to
-	 * tx DCS dsiplay off comamnd to toshiba panel
-	 */
-	mipi_dsi_op_mode_config(DSI_CMD_MODE);
-
-	mipi_dsi_cmds_tx(&toshiba_tx_buf, toshiba_display_off_cmds,
+	mutex_lock(&mfd->dma->ov_mutex);
+	mipi_dsi_cmds_tx(mfd, &toshiba_tx_buf, toshiba_display_off_cmds,
 			ARRAY_SIZE(toshiba_display_off_cmds));
+	mutex_unlock(&mfd->dma->ov_mutex);
 
 	return 0;
 }
 
-static int __init mipi_toshiba_lcd_probe(struct platform_device *pdev)
+static int __devinit mipi_toshiba_lcd_probe(struct platform_device *pdev)
 {
 	if (pdev->id == 0) {
 		mipi_toshiba_pdata = pdev->dev.platform_data;
