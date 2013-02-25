@@ -51,6 +51,7 @@
 #include <linux/hrtimer.h>
 
 #include <linux/fb.h>
+#include <linux/ion.h>
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 #include <linux/earlysuspend.h>
@@ -168,6 +169,7 @@ struct msm_fb_data_type {
 	struct completion msmfb_update_notify;
 	struct completion msmfb_no_update_notify;
 	u32 ov_start, ov_end;
+        struct ion_client *client;
 };
 
 struct dentry *msm_fb_get_debugfs_root(void);
