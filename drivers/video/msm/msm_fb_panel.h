@@ -135,6 +135,7 @@ struct mipi_panel_info {
 	char eof_bllp_power_stop;
 	char bllp_power_stop;
 	char traffic_mode;
+	char frame_rate;
 	/* command mode */
 	char interleave_max;
 	char insert_dcs_cmd;
@@ -144,15 +145,16 @@ struct mipi_panel_info {
 	char stream;	/* 0 or 1 */
 	char mdp_trigger;
 	char dma_trigger;
+	uint32 dsi_pclk_rate;
 };
 
 struct msm_panel_info {
 	__u32 xres;
 	__u32 yres;
-        __u32 mode2_xres;
-        __u32 mode2_yres;
-        __u32 mode2_bpp;
 	__u32 bpp;
+	__u32 mode2_xres;
+	__u32 mode2_yres;
+	__u32 mode2_bpp;
 	__u32 type;
 	__u32 wait_cycle;
 	DISP_TARGET_PHYS pdest;
@@ -163,15 +165,21 @@ struct msm_panel_info {
 	__u32 clk_min;
 	__u32 clk_max;
 	__u32 frame_count;
-        __u32 frame_rate;
 
 
-	struct mddi_panel_info mddi;
-	struct lcd_panel_info lcd;
-	struct lcdc_panel_info lcdc;
+		struct mddi_panel_info mddi;
+		struct lcd_panel_info lcd;
+		struct lcdc_panel_info lcdc;
 
 	struct mipi_panel_info mipi;
 };
+
+#define MSM_FB_SINGLE_MODE_PANEL(pinfo)		\
+	do {					\
+		(pinfo)->mode2_xres = 0;	\
+		(pinfo)->mode2_yres = 0;	\
+		(pinfo)->mode2_bpp = 0;		\
+	} while (0)
 
 struct msm_fb_panel_data {
 	struct msm_panel_info panel_info;
@@ -183,6 +191,7 @@ struct msm_fb_panel_data {
 	int (*on) (struct platform_device *pdev);
 	int (*off) (struct platform_device *pdev);
 	struct platform_device *next;
+	int (*clk_func) (int enable);
 };
 
 /*===========================================================================

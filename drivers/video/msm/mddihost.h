@@ -79,7 +79,15 @@ typedef enum {
 	MDDI_LCD_PRISM,
 	MDDI_LCD_TP2,
 /* LGE_CHANGES_S [minjong.gong] 2010-03-23 Google Mass 3G Hitahci MDDI I/F LCD driver */
+
+// LGE_DEV_PORTING UNIVA_S [ks82.jung@lge.com]
+#if defined (CONFIG_MACH_MSM7X27_UNIVA)
+	MDDI_LCD_LDP_TX08D39VM,
+#else
 	MDDI_LCD_HITACHI_TX08D39VM,
+#endif
+// LGE_DEV_PORTING UNIVA_E [ks82.jung@lge.com]
+
 /* LGE_CHANGES_E [minjong.gong] 2010-03-23 Google Mass 3G Hitahci MDDI I/F LCD driver */
 /* LGE_CHANGES [dojip.kim@lge.com] 2010-04-23, [LS670] Novatek MDDI I/F LCD driver */
 	MDDI_LCD_NOVATEK_NT35451,
@@ -151,8 +159,11 @@ typedef struct {
 } mddi_lcd_func_type;
 
 extern mddi_lcd_func_type mddi_lcd;
-void mddi_init(void);
+extern int irq_enabled;
+extern unsigned char mddi_timer_shutdown_flag;
+extern struct mutex mddi_timer_lock;
 
+void mddi_init(void);
 void mddi_powerdown(void);
 
 void mddi_host_start_ext_display(void);
@@ -205,6 +216,16 @@ void mddi_queue_static_window_adjust
     (const mddi_reg_write_type *reg_write,
      uint16 num_writes, mddi_llist_done_cb_type done_cb);
 
+#ifdef ENABLE_MDDI_MULTI_READ_WRITE
+int mddi_host_register_multiwrite(uint32 reg_addr,
+	uint32 *value_list_ptr, uint32 value_count,
+    boolean wait, mddi_llist_done_cb_type done_cb,
+	mddi_host_type host);
+int mddi_host_register_multiread(uint32 reg_addr,
+	uint32 *value_list_ptr, uint32 value_count,
+	boolean wait, mddi_host_type host);
+#endif
+
 #define mddi_queue_register_read(reg, val_ptr, wait, sig) \
 	mddi_host_register_read(reg, val_ptr, wait, MDDI_HOST_PRIM)
 #define mddi_queue_register_write(reg, val, wait, sig) \
@@ -229,9 +250,12 @@ void mddi_assign_max_pkt_dimensions(uint16 image_cols,
 uint16 mddi_assign_pkt_height(uint16 pkt_width, uint16 pkt_height, uint16 bpp);
 #endif
 void mddi_queue_reverse_encapsulation(boolean wait);
+int mddi_client_power(unsigned int client_id);
 void mddi_disable(int lock);
 void mddi_window_adjust(struct msm_fb_data_type *mfd,
 	uint16 x1, uint16 x2, uint16 y1, uint16 y2);
+void mddi_send_fw_link_skew_cal(mddi_host_type host_idx);
+int pmdh_clk_func(int enable);
 
 #ifdef CONFIG_MACH_LGE
 void mddi_host_register_cmds_write8(unsigned reg_addr, unsigned count,

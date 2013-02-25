@@ -200,20 +200,8 @@ struct msm_adspdec_database {
 	struct dec_instance_table *dec_instance_list;
 };
 
-enum msm_mdp_hw_revision {
-	MDP_REV_20 = 1,
-	MDP_REV_22,
-	MDP_REV_30,
-	MDP_REV_303,
-	MDP_REV_31,
-	MDP_REV_40,
-	MDP_REV_41,
-	MDP_REV_42,
-	MDP_REV_43,
-	MDP_REV_44,
-};
-
 struct msm_panel_common_pdata {
+        uintptr_t hw_revision_addr;
 	int gpio;
 	int (*backlight_level)(int level, int max, int min);
 	int (*pmic_backlight)(int level);
@@ -221,6 +209,8 @@ struct msm_panel_common_pdata {
 	void (*panel_config_gpio)(int);
 	int *gpio_num;
 	int mdp_core_clk_rate;
+        unsigned num_mdp_clk;
+        int *mdp_core_clk_table;
 };
 
 struct lcdc_platform_data {
