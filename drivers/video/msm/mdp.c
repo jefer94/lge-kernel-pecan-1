@@ -97,7 +97,9 @@ ulong mdp4_display_intf;
 #else
 static struct mdp_dma_data dma2_data;
 static struct mdp_dma_data dma_s_data;
+#ifndef CONFIG_FB_MSM_MDP303
 static struct mdp_dma_data dma_e_data;
+#endif
 #endif
 static struct mdp_dma_data dma3_data;
 
@@ -795,12 +797,13 @@ irqreturn_t mdp_isr(int irq, void *ptr)
 				mdp_dma2_timeval.tv_usec =
 				    now.tv_usec - mdp_dma2_timeval.tv_usec;
 			}
-
+#ifndef CONFIG_FB_MSM_MDP303
 			dma = &dma2_data;
 			dma->busy = FALSE;
 			mdp_pipe_ctrl(MDP_DMA2_BLOCK, MDP_BLOCK_POWER_OFF,
 				      TRUE);
 			complete(&dma->comp);
+#endif
 		}
 		/* PPP Complete */
 		if (mdp_interrupt & MDP_PPP_DONE) {
@@ -860,10 +863,12 @@ static void mdp_drv_init(void)
 	init_completion(&dma_s_data.comp);
 	init_MUTEX(&dma_s_data.mutex);
 
+#ifndef CONFIG_FB_MSM_MDP303
 	dma_e_data.busy = FALSE;
 	dma_e_data.waiting = FALSE;
 	init_completion(&dma_e_data.comp);
 	mutex_init(&dma_e_data.ov_mutex);
+#endif
 
 #ifndef CONFIG_FB_MSM_MDP22
 	init_completion(&mdp_hist_comp);
@@ -1337,6 +1342,7 @@ static int mdp_probe(struct platform_device *pdev)
 
 #ifdef CONFIG_FB_MSM_MIPI_DSI
 	case MIPI_VIDEO_PANEL:
+#ifndef CONFIG_FB_MSM_MDP303
 #ifdef CONFIG_FB_MSM_MDP40
 		mdp_timer_duration = 0;
 #endif
@@ -1352,9 +1358,24 @@ static int mdp_probe(struct platform_device *pdev)
 			mfd->dma = &dma_e_data;
 		}
 		mdp4_display_intf_sel(if_no, DSI_VIDEO_INTF);
+#else
+		pdata->on = mdp_dsi_video_on;
+		pdata->off = mdp_dsi_video_off;
+		mfd->hw_refresh = TRUE;
+		mfd->dma_fnc = mdp_dsi_video_update;
+		if (mfd->panel_info.pdest == DISPLAY_1)
+			mfd->dma = &dma2_data;
+		else {
+			printk(KERN_ERR "Invalid Selection of destination panel\n");
+			rc = -ENODEV;
+			goto mdp_probe_err;
+		}
+
+#endif
 		break;
 
 	case MIPI_CMD_PANEL:
+#ifndef CONFIG_FB_MSM_MDP303
 		mfd->dma_fnc = mdp4_dsi_cmd_overlay;
 #ifdef CONFIG_FB_MSM_MDP40
 		mdp_timer_duration = 0;
@@ -1371,7 +1392,16 @@ static int mdp_probe(struct platform_device *pdev)
 		mfd->lut_update = mdp_lut_update_nonlcdc;
 		mfd->do_histogram = mdp_do_histogram;
 		mdp4_display_intf_sel(if_no, DSI_CMD_INTF);
-
+#else
+		mfd->dma_fnc = mdp_dma2_update;
+		if (mfd->panel_info.pdest == DISPLAY_1)
+			mfd->dma = &dma2_data;
+		else {
+			printk(KERN_ERR "Invalid Selection of destination panel\n");
+			rc = -ENODEV;
+			goto mdp_probe_err;
+		}
+#endif
 		mdp_config_vsync(mfd);
 		break;
 #endif
