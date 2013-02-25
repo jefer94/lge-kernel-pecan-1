@@ -440,7 +440,6 @@ struct msmfb_mixer_info_req {
 	struct mdp_mixer_info info[MAX_PIPE_PER_MIXER];
 };
 
-
 #ifdef __KERNEL__
 
 /* get the framebuffer physical address information */
