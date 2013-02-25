@@ -1,29 +1,13 @@
 /* Copyright (c) 2009-2011, Code Aurora Forum. All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are
- * met:
- *     * Redistributions of source code must retain the above copyright
- *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above
- *       copyright notice, this list of conditions and the following
- *       disclaimer in the documentation and/or other materials provided
- *       with the distribution.
- *     * Neither the name of Code Aurora Forum, Inc. nor the names of its
- *       contributors may be used to endorse or promote products derived
- *       from this software without specific prior written permission.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
  *
- * THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
- * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
- * BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
- * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
- * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
  */
 
@@ -56,6 +40,8 @@ enum mdp4_overlay_status {
 	MDP4_OVERLAY_TYPE_SET,
 	MDP4_OVERLAY_TYPE_MAX
 };
+
+typedef int (*cmd_fxn_t)(struct platform_device *pdev);
 
 enum {		/* display */
 	PRIMARY_INTF_SEL,
@@ -308,6 +294,7 @@ struct mdp4_overlay_pipe {
 	uint32 ov_cnt;
 	uint32 dmap_cnt;
 	uint32 blt_end;
+	uint32 luma_align_size;
 	struct completion dmas_comp;
 	struct mdp_overlay req_data;
 };
@@ -330,16 +317,18 @@ struct mdp4_statistic {
 	ulong intr_overlay1;
 	ulong intr_underrun_p;	/* Primary interface */
 	ulong intr_underrun_e;	/* external interface */
+	ulong intr_dsi;
 	ulong kickoff_mddi;
-	ulong kickoff_piggy;
 	ulong kickoff_lcdc;
 	ulong kickoff_dtv;
 	ulong kickoff_atv;
 	ulong kickoff_dsi;
+	ulong writeback;	/* blt */
 	ulong overlay_set[MDP4_MIXER_MAX];
 	ulong overlay_unset[MDP4_MIXER_MAX];
 	ulong overlay_play[MDP4_MIXER_MAX];
 	ulong pipe[MDP4_MAX_PIPE];
+	ulong dsi_clkoff;
 	ulong err_mixer;
 	ulong err_zorder;
 	ulong err_size;
@@ -431,12 +420,14 @@ int mdp4_dtv_off(struct platform_device *pdev);
 void mdp4_atv_overlay(struct msm_fb_data_type *mfd);
 int mdp4_atv_on(struct platform_device *pdev);
 int mdp4_atv_off(struct platform_device *pdev);
+void mdp4_dsi_video_fxn_register(cmd_fxn_t fxn);
 void mdp4_dsi_video_overlay(struct msm_fb_data_type *mfd);
 int mdp4_dsi_video_on(struct platform_device *pdev);
 int mdp4_dsi_video_off(struct platform_device *pdev);
 void mdp4_overlay0_done_dsi_video(void);
 void mdp4_overlay0_done_dsi_cmd(struct mdp_dma_data *dma);
 void mdp4_dsi_cmd_overlay(struct msm_fb_data_type *mfd);
+void mdp4_overlay_dsi_state_set(int state);
 void mdp4_overlay_rgb_setup(struct mdp4_overlay_pipe *pipe);
 void mdp4_overlay_reg_flush(struct mdp4_overlay_pipe *pipe, int all);
 void mdp4_mixer_blend_setup(struct mdp4_overlay_pipe *pipe);
@@ -452,7 +443,8 @@ int mdp4_overlay_get(struct fb_info *info, struct mdp_overlay *req);
 int mdp4_overlay_set(struct fb_info *info, struct mdp_overlay *req);
 int mdp4_overlay_unset(struct fb_info *info, int ndx);
 int mdp4_overlay_play(struct fb_info *info, struct msmfb_overlay_data *req,
-				struct file **pp_src_file);
+		struct file **pp_src_file, struct file **pp_src_plane1_file,
+		struct file **pp_src_plane2_file);
 struct mdp4_overlay_pipe *mdp4_overlay_pipe_alloc(int ptype, int mixer,
 				int req_share);
 void mdp4_overlay_pipe_free(struct mdp4_overlay_pipe *pipe);
@@ -475,7 +467,7 @@ void mdp4_primary_vsync_lcdc(void);
 void mdp4_external_vsync_dtv(void);
 void mdp4_mddi_overlay_restore(void);
 void mdp4_overlay_lcdc_wait4vsync(struct msm_fb_data_type *mfd);
-void mdp4_overlay_vsync_push(struct msm_fb_data_type *mfd,
+void mdp4_overlay_lcdc_vsync_push(struct msm_fb_data_type *mfd,
 				struct mdp4_overlay_pipe *pipe);
 
 void mdp4_set_perf_level(void);
@@ -502,10 +494,12 @@ int mdp4_overlay_blt(struct fb_info *info, struct msmfb_overlay_blt *req);
 int mdp4_overlay_blt_offset(struct fb_info *info,
 					struct msmfb_overlay_blt *req);
 
-int mdp4_dsi_overlay_blt_start(struct msm_fb_data_type *mfd);
-int mdp4_dsi_overlay_blt_stop(struct msm_fb_data_type *mfd);
 
 #ifdef CONFIG_FB_MSM_MIPI_DSI
+int mdp4_dsi_overlay_blt_start(struct msm_fb_data_type *mfd);
+int mdp4_dsi_overlay_blt_stop(struct msm_fb_data_type *mfd);
+void mdp4_dsi_video_blt_start(struct msm_fb_data_type *mfd);
+void mdp4_dsi_video_blt_stop(struct msm_fb_data_type *mfd);
 void mdp4_dsi_overlay_blt(struct msm_fb_data_type *mfd,
 					struct msmfb_overlay_blt *req);
 int mdp4_dsi_overlay_blt_offset(struct msm_fb_data_type *mfd,
@@ -515,7 +509,28 @@ void mdp4_dsi_video_overlay_blt(struct msm_fb_data_type *mfd,
 					struct msmfb_overlay_blt *req);
 int mdp4_dsi_video_overlay_blt_offset(struct msm_fb_data_type *mfd,
 					struct msmfb_overlay_blt *req);
+
+#ifdef CONFIG_FB_MSM_MDP40
+static inline void mdp3_dsi_cmd_dma_busy_wait(struct msm_fb_data_type *mfd)
+{
+	/* empty */
+}
+#endif
 #else
+static inline int mdp4_dsi_overlay_blt_start(struct msm_fb_data_type *mfd)
+{
+	return -ENODEV;
+}
+static inline int mdp4_dsi_overlay_blt_stop(struct msm_fb_data_type *mfd)
+{
+	return -ENODEV;
+}
+static inline void mdp4_dsi_video_blt_start(struct msm_fb_data_type *mfd)
+{
+}
+static inline void mdp4_dsi_video_blt_stop(struct msm_fb_data_type *mfd)
+{
+}
 static inline void mdp4_dsi_overlay_blt(
 	struct msm_fb_data_type *mfd, struct msmfb_overlay_blt *req)
 {
@@ -540,6 +555,8 @@ void mdp4_lcdc_overlay_blt(struct msm_fb_data_type *mfd,
 					struct msmfb_overlay_blt *req);
 int mdp4_lcdc_overlay_blt_offset(struct msm_fb_data_type *mfd,
 					struct msmfb_overlay_blt *req);
+void mdp4_lcdc_overlay_blt_start(struct msm_fb_data_type *mfd);
+void mdp4_lcdc_overlay_blt_stop(struct msm_fb_data_type *mfd);
 
 int mdp4_mddi_overlay_blt_offset(int *off);
 void mdp4_mddi_overlay_blt(ulong addr);
@@ -559,6 +576,8 @@ void mdp4_dsi_cmd_dma_busy_check(void);
 #ifdef CONFIG_FB_MSM_MIPI_DSI
 void mdp4_dsi_cmd_dma_busy_wait(struct msm_fb_data_type *mfd);
 void mdp4_dsi_blt_dmap_busy_wait(struct msm_fb_data_type *mfd);
+void mdp4_overlay_dsi_video_vsync_push(struct msm_fb_data_type *mfd,
+				struct mdp4_overlay_pipe *pipe);
 #else
 static inline void mdp4_dsi_cmd_dma_busy_wait(struct msm_fb_data_type *mfd)
 {
@@ -596,9 +615,12 @@ void mdp_dmap_vsync_set(int enable);
 int mdp_dmap_vsync_get(void);
 void mdp_hw_cursor_done(void);
 void mdp_hw_cursor_init(void);
-
+int mdp4_mddi_overlay_cursor(struct fb_info *info, struct fb_cursor *cursor);
 int mdp_ppp_blit(struct fb_info *info, struct mdp_blit_req *req);
 void mdp4_overlay_resource_release(void);
+void mdp4_overlay_dsi_video_wait4vsync(struct msm_fb_data_type *mfd);
+void mdp4_primary_vsync_dsi_video(void);
+uint32_t mdp4_ss_table_value(int8_t param, int8_t index);
 void mdp4_overlay_status_write(enum mdp4_overlay_status type, bool val);
 bool mdp4_overlay_status_read(enum mdp4_overlay_status type);
 #endif /* MDP_H */

@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2010, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -8,11 +8,6 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA.
  *
  */
 
@@ -269,8 +264,6 @@ int mdp4_dtv_off(struct platform_device *pdev)
 {
 	int ret = 0;
 
-	ret = panel_next_off(pdev);
-
 	/* MDP cmd block enable */
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
 	MDP_OUTP(MDP_BASE + DTV_BASE, 0);
@@ -278,15 +271,24 @@ int mdp4_dtv_off(struct platform_device *pdev)
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
 	mdp_pipe_ctrl(MDP_OVERLAY1_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
 
-
-	/* delay to make sure the last frame finishes */
-	msleep(100);
-
+	/*
+	 * wait for vsync == 16.6 ms to make sure
+	 * the last frame finishes
+	*/
+	msleep(20);
 	pr_info("%s\n", __func__);
+
+	ret = panel_next_off(pdev);
 
 	/* dis-engage rgb2 from mixer1 */
 	if (dtv_pipe)
 		mdp4_mixer_stage_down(dtv_pipe);
+
+	/*
+	 * wait for another vsync == 16.6 ms to make sure
+	 * rgb2 dis-engaged
+	*/
+	msleep(20);
 
 	return ret;
 }
@@ -311,14 +313,9 @@ static void mdp4_overlay_dtv_wait4vsync(struct msm_fb_data_type *mfd)
 void mdp4_overlay_dtv_vsync_push(struct msm_fb_data_type *mfd,
 			struct mdp4_overlay_pipe *pipe)
 {
-	u32 data = inpdw(MDP_BASE + DTV_BASE);
 
 	mdp4_overlay_reg_flush(pipe, 1);
 	if (pipe->flags & MDP_OV_PLAY_NOWAIT)
-		return;
-
-	/* Return if DTV is not enabled */
-	if (!(data & 0x1))
 		return;
 
 	mdp4_overlay_dtv_wait4vsync(mfd);
