@@ -68,6 +68,11 @@ enum {		/* mipi dsi panel */
 	DSI_CMD_MODE,
 };
 
+enum {
+	LANDSCAPE = 1,
+	PORTRAIT = 2,
+};
+
 #define DSI_NON_BURST_SYNCH_PULSE	0
 #define DSI_NON_BURST_SYNCH_EVENT	1
 #define DSI_BURST_MODE			2
