@@ -48,12 +48,13 @@ uint32 mdp4_extn_disp;
 static struct clk *mdp_clk;
 static struct clk *mdp_pclk;
 struct regulator *footswitch;
+int mdp_rev;
 
 struct completion mdp_ppp_comp;
 struct semaphore mdp_ppp_mutex;
 struct semaphore mdp_pipe_ctrl_mutex;
 
-unsigned long mdp_timer_duration = (HZ);   /* 1 second */
+unsigned long mdp_timer_duration = (HZ/20);   /* 50 msecond */
 
 boolean mdp_ppp_waiting = FALSE;
 uint32 mdp_tv_underflow_cnt;
@@ -85,6 +86,9 @@ struct workqueue_struct *mdp_vsync_wq;	/*mdp vsync wq */
 static struct workqueue_struct *mdp_pipe_ctrl_wq; /* mdp mdp pipe ctrl wq */
 static struct delayed_work mdp_pipe_ctrl_worker;
 
+static boolean mdp_suspended = FALSE;
+DEFINE_MUTEX(mdp_suspend_mutex);
+
 #ifdef CONFIG_FB_MSM_MDP40
 struct mdp_dma_data dma2_data;
 struct mdp_dma_data dma_s_data;
@@ -93,7 +97,9 @@ ulong mdp4_display_intf;
 #else
 static struct mdp_dma_data dma2_data;
 static struct mdp_dma_data dma_s_data;
+#ifndef CONFIG_FB_MSM_MDP303
 static struct mdp_dma_data dma_e_data;
+#endif
 #endif
 static struct mdp_dma_data dma3_data;
 
@@ -274,6 +280,7 @@ int mdp_start_histogram(struct fb_info *info)
 	mdp_is_hist_start = TRUE;
 	spin_unlock_irqrestore(&mdp_spin_lock, flag);
 	mdp_enable_irq(MDP_HISTOGRAM_TERM);
+	mdp_hist.frame_cnt = 1;
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
 #ifdef CONFIG_FB_MSM_MDP40
 	MDP_OUTP(MDP_BASE + 0x95004, 1);
@@ -478,9 +485,6 @@ void mdp_pipe_kickoff(uint32 term, struct msm_fb_data_type *mfd)
 		/* DMA update timestamp */
 		mdp_dma2_last_update_time = ktime_get_real();
 		/* let's turn on DMA2 block */
-#if 0
-		mdp_pipe_ctrl(MDP_DMA2_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
-#endif
 #ifdef CONFIG_FB_MSM_MDP22
 		outpdw(MDP_CMD_DEBUG_ACCESS_BASE + 0x0044, 0x0);/* start DMA */
 #else
@@ -615,7 +619,8 @@ void mdp_pipe_ctrl(MDP_BLOCK_TYPE block, MDP_BLOCK_POWER_STATE state,
 		}
 
 		if ((mdp_all_blocks_off) && (mdp_current_clk_on)) {
-			if (block == MDP_MASTER_BLOCK) {
+			mutex_lock(&mdp_suspend_mutex);
+			if (block == MDP_MASTER_BLOCK || mdp_suspended) {
 				mdp_current_clk_on = FALSE;
 				/* turn off MDP clks */
 				for (i = 0; i < pdev_list_cnt; i++) {
@@ -645,6 +650,7 @@ void mdp_pipe_ctrl(MDP_BLOCK_TYPE block, MDP_BLOCK_POWER_STATE state,
 						   &mdp_pipe_ctrl_worker,
 						   mdp_timer_duration);
 			}
+			mutex_unlock(&mdp_suspend_mutex);
 		} else if ((!mdp_all_blocks_off) && (!mdp_current_clk_on)) {
 			mdp_current_clk_on = TRUE;
 			/* turn on MDP clks */
@@ -789,12 +795,13 @@ irqreturn_t mdp_isr(int irq, void *ptr)
 				mdp_dma2_timeval.tv_usec =
 				    now.tv_usec - mdp_dma2_timeval.tv_usec;
 			}
-
+#ifndef CONFIG_FB_MSM_MDP303
 			dma = &dma2_data;
 			dma->busy = FALSE;
 			mdp_pipe_ctrl(MDP_DMA2_BLOCK, MDP_BLOCK_POWER_OFF,
 				      TRUE);
 			complete(&dma->comp);
+#endif
 		}
 		/* PPP Complete */
 		if (mdp_interrupt & MDP_PPP_DONE) {
@@ -854,10 +861,12 @@ static void mdp_drv_init(void)
 	init_completion(&dma_s_data.comp);
 	init_MUTEX(&dma_s_data.mutex);
 
+#ifndef CONFIG_FB_MSM_MDP303
 	dma_e_data.busy = FALSE;
 	dma_e_data.waiting = FALSE;
 	init_completion(&dma_e_data.comp);
 	mutex_init(&dma_e_data.ov_mutex);
+#endif
 
 #ifndef CONFIG_FB_MSM_MDP22
 	init_completion(&mdp_hist_comp);
@@ -1040,11 +1049,10 @@ static void configure_mdp_core_clk_table(uint32 min_clk_rate)
 {
 	uint8 count;
 	uint32 current_rate;
-	if (mdp_clk && mdp_pdata
-		&& mdp_pdata->mdp_core_clk_table) {
-		if (clk_set_min_rate(mdp_clk,
-				 min_clk_rate) < 0)
-			printk(KERN_ERR "%s: clk_set_min_rate failed\n",
+	if (mdp_clk && mdp_pdata && mdp_pdata->mdp_core_clk_table) {
+		min_clk_rate = clk_round_rate(mdp_clk, min_clk_rate);
+		if (clk_set_rate(mdp_clk, min_clk_rate) < 0)
+			printk(KERN_ERR "%s: clk_set_rate failed\n",
 							 __func__);
 		else {
 			count = 0;
@@ -1332,9 +1340,7 @@ static int mdp_probe(struct platform_device *pdev)
 
 #ifdef CONFIG_FB_MSM_MIPI_DSI
 	case MIPI_VIDEO_PANEL:
-#ifdef CONFIG_FB_MSM_MDP40
-		mdp_timer_duration = 0;
-#endif
+#ifndef CONFIG_FB_MSM_MDP303
 		pdata->on = mdp4_dsi_video_on;
 		pdata->off = mdp4_dsi_video_off;
 		mfd->hw_refresh = TRUE;
@@ -1347,12 +1353,27 @@ static int mdp_probe(struct platform_device *pdev)
 			mfd->dma = &dma_e_data;
 		}
 		mdp4_display_intf_sel(if_no, DSI_VIDEO_INTF);
+#else
+		pdata->on = mdp_dsi_video_on;
+		pdata->off = mdp_dsi_video_off;
+		mfd->hw_refresh = TRUE;
+		mfd->dma_fnc = mdp_dsi_video_update;
+		mfd->do_histogram = mdp_do_histogram;
+		if (mfd->panel_info.pdest == DISPLAY_1)
+			mfd->dma = &dma2_data;
+		else {
+			printk(KERN_ERR "Invalid Selection of destination panel\n");
+			rc = -ENODEV;
+			goto mdp_probe_err;
+		}
+
+#endif
 		break;
 
 	case MIPI_CMD_PANEL:
+#ifndef CONFIG_FB_MSM_MDP303
 		mfd->dma_fnc = mdp4_dsi_cmd_overlay;
 #ifdef CONFIG_FB_MSM_MDP40
-		mdp_timer_duration = 0;
 		mipi = &mfd->panel_info.mipi;
 		configure_mdp_core_clk_table((mipi->dsi_pclk_rate) * 3 / 2);
 #endif
@@ -1366,7 +1387,17 @@ static int mdp_probe(struct platform_device *pdev)
 		mfd->lut_update = mdp_lut_update_nonlcdc;
 		mfd->do_histogram = mdp_do_histogram;
 		mdp4_display_intf_sel(if_no, DSI_CMD_INTF);
-
+#else
+		mfd->dma_fnc = mdp_dma2_update;
+		mfd->do_histogram = mdp_do_histogram;
+		if (mfd->panel_info.pdest == DISPLAY_1)
+			mfd->dma = &dma2_data;
+		else {
+			printk(KERN_ERR "Invalid Selection of destination panel\n");
+			rc = -ENODEV;
+			goto mdp_probe_err;
+		}
+#endif
 		mdp_config_vsync(mfd);
 		break;
 #endif
@@ -1501,13 +1532,24 @@ static void mdp_suspend_sub(void)
 
 	/* try to power down */
 	mdp_pipe_ctrl(MDP_MASTER_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
+
+	mutex_lock(&mdp_suspend_mutex);
+	mdp_suspended = TRUE;
+	mutex_unlock(&mdp_suspend_mutex);
 }
 #endif
 
 #if defined(CONFIG_PM) && !defined(CONFIG_HAS_EARLYSUSPEND)
 static int mdp_suspend(struct platform_device *pdev, pm_message_t state)
 {
-	mdp_suspend_sub();
+	if (pdev->id == 0) {
+		mdp_suspend_sub();
+		if (mdp_current_clk_on) {
+			printk(KERN_WARNING"MDP suspend failed\n");
+			return -EBUSY;
+		}
+	}
+
 	return 0;
 }
 #endif
@@ -1516,6 +1558,13 @@ static int mdp_suspend(struct platform_device *pdev, pm_message_t state)
 static void mdp_early_suspend(struct early_suspend *h)
 {
 	mdp_suspend_sub();
+}
+
+static void mdp_early_resume(struct early_suspend *h)
+{
+	mutex_lock(&mdp_suspend_mutex);
+	mdp_suspended = FALSE;
+	mutex_unlock(&mdp_suspend_mutex);
 }
 #endif
 
@@ -1538,6 +1587,7 @@ static int mdp_register_driver(void)
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	early_suspend.level = EARLY_SUSPEND_LEVEL_DISABLE_FB - 1;
 	early_suspend.suspend = mdp_early_suspend;
+	early_suspend.resume = mdp_early_resume;
 	register_early_suspend(&early_suspend);
 #endif
 
