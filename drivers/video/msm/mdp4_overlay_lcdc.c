@@ -328,7 +328,7 @@ void mdp4_lcdc_overlay_blt(struct msm_fb_data_type *mfd,
 }
 #endif
 
-void mdp4_overlay_lcdc_wait4vsync(struct msm_fb_data_type *mfd)
+static void mdp4_overlay_lcdc_wait4event(struct msm_fb_data_type *mfd, int dmap)
 {
 	unsigned long flag;
 
@@ -338,7 +338,10 @@ void mdp4_overlay_lcdc_wait4vsync(struct msm_fb_data_type *mfd)
 	INIT_COMPLETION(lcdc_comp);
 	mfd->dma->waiting = TRUE;
 	outp32(MDP_INTR_CLEAR, INTR_PRIMARY_VSYNC);
-	mdp_intr_mask |= INTR_PRIMARY_VSYNC;
+	if (dmap)
+			mdp_intr_mask |= INTR_DMA_P_DONE;
+		else
+			mdp_intr_mask |= INTR_PRIMARY_VSYNC;
 	outp32(MDP_INTR_ENABLE, mdp_intr_mask);
 	spin_unlock_irqrestore(&mdp_spin_lock, flag);
 	wait_for_completion_killable(&lcdc_comp);
@@ -353,13 +356,24 @@ void mdp4_overlay_vsync_push(struct msm_fb_data_type *mfd,
 	if (pipe->flags & MDP_OV_PLAY_NOWAIT)
 		return;
 
-	mdp4_overlay_lcdc_wait4vsync(mfd);
+	mdp4_overlay_lcdc_wait4event(mfd, 1);
+
+	/* change mdp clk while mdp is idle` */
+	mdp4_set_perf_level();
 }
 
 /*
  * mdp4_primary_vsync_lcdc: called from isr
  */
 void mdp4_primary_vsync_lcdc(void)
+{
+	complete_all(&lcdc_comp);
+}
+
+/*
+ * mdp4_dma_p_done_lcdc: called from isr
+ */
+void mdp4_dma_p_done_lcdc(void)
 {
 	complete_all(&lcdc_comp);
 }
@@ -395,6 +409,5 @@ void mdp4_lcdc_overlay(struct msm_fb_data_type *mfd)
 	mdp4_overlay_rgb_setup(pipe);
 	mdp4_overlay_vsync_push(mfd, pipe);
 	mdp4_stat.kickoff_lcdc++;
-	mdp4_overlay_resource_release();
 	mutex_unlock(&mfd->dma->ov_mutex);
 }
