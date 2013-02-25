@@ -594,6 +594,8 @@ void mdp4_dsi_cmd_overlay_kickoff(struct msm_fb_data_type *mfd,
 {
 	unsigned long flag;
 
+        /* change mdp clk */
+	mdp4_set_perf_level();
 
 	spin_lock_irqsave(&mdp_spin_lock, flag);
 	mdp_enable_irq(MDP_OVERLAY0_TERM);
@@ -634,6 +636,5 @@ if (dsi_pipe && dsi_pipe->blt_addr)
 			complete(&mfd->pan_comp);
 		}
 	}
-	mdp4_overlay_resource_release();
 	mutex_unlock(&mfd->dma->ov_mutex);
 }
