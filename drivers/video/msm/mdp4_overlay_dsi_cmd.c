@@ -426,6 +426,7 @@ void mdp4_dma_p_done_dsi(struct mdp_dma_data *dma)
 			mdp_intr_mask &= ~INTR_DMA_P_DONE;
 			outp32(MDP_INTR_ENABLE, mdp_intr_mask);
 		}
+		mdp_pipe_ctrl(MDP_OVERLAY0_BLOCK, MDP_BLOCK_POWER_OFF, TRUE);
 		mdp_disable_irq_nosync(MDP_DMA2_TERM);  /* disable intr */
 		return;
 	}
@@ -445,6 +446,7 @@ void mdp4_dma_p_done_dsi(struct mdp_dma_data *dma)
 	/* trigger dsi cmd engine */
 	mipi_dsi_cmd_mdp_sw_trigger();
 
+	mdp_pipe_ctrl(MDP_OVERLAY0_BLOCK, MDP_BLOCK_POWER_OFF, TRUE);
 }
 
 
@@ -456,6 +458,7 @@ void mdp4_overlay0_done_dsi_cmd(struct mdp_dma_data *dma)
 	int diff;
 
 	if (dsi_pipe->blt_addr == 0) {
+		mdp_pipe_ctrl(MDP_OVERLAY0_BLOCK, MDP_BLOCK_POWER_OFF, TRUE);
 		spin_lock(&mdp_spin_lock);
 		dma->busy = FALSE;
 		spin_unlock(&mdp_spin_lock);
