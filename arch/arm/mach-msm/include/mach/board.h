@@ -224,6 +224,7 @@ struct msm_panel_common_pdata {
 	int mdp_core_clk_rate;
         unsigned num_mdp_clk;
         int *mdp_core_clk_table;
+        int mdp_rev;
 };
 
 struct lcdc_platform_data {
