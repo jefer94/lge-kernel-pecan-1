@@ -225,6 +225,7 @@ struct msm_panel_common_pdata {
         unsigned num_mdp_clk;
         int *mdp_core_clk_table;
         int mdp_rev;
+        int (*writeback_offset)(void);
 };
 
 struct lcdc_platform_data {
