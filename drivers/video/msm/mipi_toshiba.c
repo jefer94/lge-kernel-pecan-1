@@ -23,6 +23,7 @@
 static struct pwm_device *bl_lpm;
 static struct mipi_dsi_panel_platform_data *mipi_toshiba_pdata;
 
+#define TM_GET_PID(id) (((id) & 0xff00)>>8)
 
 static struct dsi_buf toshiba_tx_buf;
 static struct dsi_buf toshiba_rx_buf;
@@ -57,7 +58,7 @@ static struct dsi_cmd_desc toshiba_display_off_cmds[] = {
 	{DTYPE_DCS_WRITE, 1, 0, 0, 120, sizeof(enter_sleep), enter_sleep}
 };
 
-static struct dsi_cmd_desc toshiba_display_on_cmds[] = {
+static struct dsi_cmd_desc toshiba_wvga_display_on_cmds[] = {
 	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(mcap_off), mcap_off},
 	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(ena_test_reg), ena_test_reg},
 	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(two_lane), two_lane},
