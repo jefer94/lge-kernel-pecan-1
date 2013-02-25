@@ -702,6 +702,10 @@ static inline int mdp_hw_cursor_sync_update(struct fb_info *info,
 {
 	return 0;
 }
+static inline int mdp4_overlay_dsi_state_get(void)
+{
+	return 0;
+}
 #endif
 
 void mdp_enable_irq(uint32 term);

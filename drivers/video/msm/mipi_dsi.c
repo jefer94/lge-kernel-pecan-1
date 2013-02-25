@@ -501,7 +501,7 @@ static int mipi_dsi_off(struct platform_device *pdev)
 
 	mutex_unlock(&mfd->dma->ov_mutex);
 
-	pr_debug("%s:\n", __func__);
+	pr_debug("%s-:\n", __func__);
 
 	return ret;
 }
@@ -606,6 +606,11 @@ static int mipi_dsi_on(struct platform_device *pdev)
 	mipi_dsi_host_init(mipi);
 
 	mipi_dsi_cmd_bta_sw_trigger(); /* clean up ack_err_status */
+
+	if (mdp_rev >= MDP_REV_41)
+		mutex_lock(&mfd->dma->ov_mutex);
+	else
+		down(&mfd->dma->mutex);
 
 	ret = panel_next_on(pdev);
 
