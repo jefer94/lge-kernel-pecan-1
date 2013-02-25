@@ -9,11 +9,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA.
- *
  */
 
 #include <linux/module.h>
@@ -40,20 +35,37 @@
 static struct mdp4_overlay_pipe *dsi_pipe;
 static struct msm_fb_data_type *dsi_mfd;
 static int busy_wait_cnt;
+static int dsi_state;
+static unsigned long  tout_expired;
+
+#define TOUT_PERIOD	HZ	/* 1 second */
+#define MS_100		(HZ/10)	/* 100 ms */
 
 static int vsync_start_y_adjust = 4;
 
-#ifdef DSI_CLK_CTRL
 struct timer_list dsi_clock_timer;
 
 static int writeback_offset;
 
+void mdp4_overlay_dsi_state_set(int state)
+{
+	unsigned long flag;
+
+	spin_lock_irqsave(&mdp_spin_lock, flag);
+	dsi_state = state;
+	spin_unlock_irqrestore(&mdp_spin_lock, flag);
+}
+
 static void dsi_clock_tout(unsigned long data)
 {
-	if (mipi_dsi_clk_on)
-		mipi_dsi_clk_disable();
+	if (mipi_dsi_clk_on) {
+		if (dsi_state == ST_DSI_PLAYING) {
+			mdp4_stat.dsi_clkoff++;
+			mipi_dsi_clk_disable();
+			mdp4_overlay_dsi_state_set(ST_DSI_CLK_OFF);
+		}
+	}
 }
-#endif
 
 static __u32 msm_fb_line_length(__u32 fb_index, __u32 xres, int bpp)
 {
@@ -133,12 +145,14 @@ void mdp4_overlay_update_dsi_cmd(struct msm_fb_data_type *mfd)
 		ret = mdp4_overlay_format2pipe(pipe);
 		if (ret < 0)
 			printk(KERN_INFO "%s: format2type failed\n", __func__);
-#ifdef DSI_CLK_CTRL
+
 		init_timer(&dsi_clock_timer);
 		dsi_clock_timer.function = dsi_clock_tout;
 		dsi_clock_timer.data = (unsigned long) mfd;;
-		dsi_clock_timer.expires = HZ;
-#endif
+		dsi_clock_timer.expires = 0xffffffff;
+		add_timer(&dsi_clock_timer);
+		tout_expired = jiffies;
+
 		dsi_pipe = pipe; /* keep it */
 
 		fbi = mfd->fbi;
@@ -300,8 +314,8 @@ int mdp4_dsi_overlay_blt_start(struct msm_fb_data_type *mfd)
 		dsi_pipe->ov_cnt = 0;
 		dsi_pipe->dmap_cnt = 0;
 		dsi_pipe->blt_addr = dsi_pipe->blt_base;
+		mdp4_stat.writeback++;
 		spin_unlock_irqrestore(&mdp_spin_lock, flag);
-		mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
 		return 0;
 	}
 
@@ -320,7 +334,6 @@ int mdp4_dsi_overlay_blt_stop(struct msm_fb_data_type *mfd)
 		spin_lock_irqsave(&mdp_spin_lock, flag);
 		dsi_pipe->blt_end = 1;	/* mark as end */
 		spin_unlock_irqrestore(&mdp_spin_lock, flag);
-		mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
 		return 0;
 	}
 
@@ -406,14 +419,10 @@ void mdp4_dma_p_done_dsi(struct mdp_dma_data *dma)
 {
 	int diff;
 
-	mdp_disable_irq_nosync(MDP_DMA2_TERM);  /* disable intr */
-
 	dsi_pipe->dmap_cnt++;
 	diff = dsi_pipe->ov_cnt - dsi_pipe->dmap_cnt;
 	pr_debug("%s: ov_cnt=%d dmap_cnt=%d\n",
 			__func__, dsi_pipe->ov_cnt, dsi_pipe->dmap_cnt);
-
-	mdp_pipe_ctrl(MDP_OVERLAY0_BLOCK, MDP_BLOCK_POWER_OFF, TRUE);
 
 	if (diff <= 0) {
 		spin_lock(&mdp_spin_lock);
@@ -427,8 +436,9 @@ void mdp4_dma_p_done_dsi(struct mdp_dma_data *dma)
 				__func__, dsi_pipe->ov_cnt, dsi_pipe->dmap_cnt);
 			mdp_intr_mask &= ~INTR_DMA_P_DONE;
 			outp32(MDP_INTR_ENABLE, mdp_intr_mask);
-
 		}
+		mdp_pipe_ctrl(MDP_OVERLAY0_BLOCK, MDP_BLOCK_POWER_OFF, TRUE);
+		mdp_disable_irq_nosync(MDP_DMA2_TERM);  /* disable intr */
 		return;
 	}
 
@@ -442,11 +452,12 @@ void mdp4_dma_p_done_dsi(struct mdp_dma_data *dma)
 	pr_debug("%s: kickoff dmap\n", __func__);
 
 	mdp4_blt_xy_update(dsi_pipe);
-	mdp_enable_irq(MDP_DMA2_TERM);	/* enable intr */
 	/* kick off dmap */
 	outpdw(MDP_BASE + 0x000c, 0x0);
 	/* trigger dsi cmd engine */
 	mipi_dsi_cmd_mdp_sw_trigger();
+
+	mdp_pipe_ctrl(MDP_OVERLAY0_BLOCK, MDP_BLOCK_POWER_OFF, TRUE);
 }
 
 
@@ -455,11 +466,7 @@ void mdp4_dma_p_done_dsi(struct mdp_dma_data *dma)
  */
 void mdp4_overlay0_done_dsi_cmd(struct mdp_dma_data *dma)
 {
-
 	int diff;
-
-
-	mdp_disable_irq_nosync(MDP_OVERLAY0_TERM);
 
 	if (dsi_pipe->blt_addr == 0) {
 		mdp_pipe_ctrl(MDP_OVERLAY0_BLOCK, MDP_BLOCK_POWER_OFF, TRUE);
@@ -469,6 +476,7 @@ void mdp4_overlay0_done_dsi_cmd(struct mdp_dma_data *dma)
 		complete(&dma->comp);
 		if (busy_wait_cnt)
 			busy_wait_cnt--;
+		mdp_disable_irq_nosync(MDP_OVERLAY0_TERM);
 		return;
 	}
 
@@ -487,8 +495,10 @@ void mdp4_overlay0_done_dsi_cmd(struct mdp_dma_data *dma)
 	dsi_pipe->blt_cnt++;
 
 	diff = dsi_pipe->ov_cnt - dsi_pipe->dmap_cnt;
-	if (diff >= 2)
+	if (diff >= 2) {
+		mdp_disable_irq_nosync(MDP_OVERLAY0_TERM);
 		return;
+	}
 
 	spin_lock(&mdp_spin_lock);
 	dma->busy = FALSE;
@@ -506,6 +516,7 @@ void mdp4_overlay0_done_dsi_cmd(struct mdp_dma_data *dma)
 	outpdw(MDP_BASE + 0x000c, 0x0);
 	/* trigger dsi cmd engine */
 	mipi_dsi_cmd_mdp_sw_trigger();
+	mdp_disable_irq_nosync(MDP_OVERLAY0_TERM);
 }
 
 void mdp4_dsi_cmd_overlay_restore(void)
@@ -514,8 +525,10 @@ void mdp4_dsi_cmd_overlay_restore(void)
 	if (dsi_mfd && dsi_pipe) {
 		mdp4_dsi_cmd_dma_busy_wait(dsi_mfd);
 		mdp4_overlay_update_dsi_cmd(dsi_mfd);
+
+		if (dsi_pipe->blt_addr)
+			mdp4_dsi_blt_dmap_busy_wait(dsi_mfd);
 		mdp4_dsi_cmd_overlay_kickoff(dsi_mfd, dsi_pipe);
-		dsi_mfd->dma_update_flag = 1;
 	}
 }
 
@@ -548,16 +561,27 @@ void mdp4_dsi_cmd_dma_busy_wait(struct msm_fb_data_type *mfd)
 	unsigned long flag;
 	int need_wait = 0;
 
-#ifdef DSI_CLK_CTRL
-	mod_timer(&dsi_clock_timer, jiffies + HZ); /* one second */
-#endif
+
+
+	if (dsi_clock_timer.function) {
+		if (time_after(jiffies, tout_expired)) {
+			tout_expired = jiffies + TOUT_PERIOD;
+			mod_timer(&dsi_clock_timer, tout_expired);
+			tout_expired -= MS_100;
+		}
+	}
+
+	pr_debug("%s: start pid=%d dsi_clk_on=%d\n",
+			__func__, current->pid, mipi_dsi_clk_on);
+
+	/* satrt dsi clock if necessary */
+	if (mipi_dsi_clk_on == 0) {
+		local_bh_disable();
+		mipi_dsi_clk_enable();
+		local_bh_enable();
+	}
 
 	spin_lock_irqsave(&mdp_spin_lock, flag);
-#ifdef DSI_CLK_CTRL
-	if (mipi_dsi_clk_on == 0)
-		mipi_dsi_clk_enable();
-#endif
-
 	if (mfd->dma->busy == TRUE) {
 		if (busy_wait_cnt == 0)
 			INIT_COMPLETION(mfd->dma->comp);
@@ -568,8 +592,12 @@ void mdp4_dsi_cmd_dma_busy_wait(struct msm_fb_data_type *mfd)
 
 	if (need_wait) {
 		/* wait until DMA finishes the current job */
+		pr_debug("%s: pending pid=%d dsi_clk_on=%d\n",
+				__func__, current->pid, mipi_dsi_clk_on);
 		wait_for_completion(&mfd->dma->comp);
 	}
+	pr_debug("%s: done pid=%d dsi_clk_on=%d\n",
+			 __func__, current->pid, mipi_dsi_clk_on);
 }
 
 void mdp4_dsi_cmd_kickoff_video(struct msm_fb_data_type *mfd,
@@ -578,6 +606,11 @@ void mdp4_dsi_cmd_kickoff_video(struct msm_fb_data_type *mfd,
 	if (dsi_pipe->blt_addr && dsi_pipe->blt_cnt == 0)
 		mdp4_overlay_update_dsi_cmd(mfd);
 
+	pr_debug("%s: pid=%d\n", __func__, current->pid);
+
+	if (dsi_pipe->blt_addr)
+		mdp4_dsi_blt_dmap_busy_wait(dsi_mfd);
+
 	mdp4_dsi_cmd_overlay_kickoff(mfd, pipe);
 }
 
@@ -585,6 +618,7 @@ void mdp4_dsi_cmd_kickoff_ui(struct msm_fb_data_type *mfd,
 				struct mdp4_overlay_pipe *pipe)
 {
 
+	pr_debug("%s: pid=%d\n", __func__, current->pid);
 	mdp4_dsi_cmd_overlay_kickoff(mfd, pipe);
 }
 
@@ -594,8 +628,11 @@ void mdp4_dsi_cmd_overlay_kickoff(struct msm_fb_data_type *mfd,
 {
 	unsigned long flag;
 
-        /* change mdp clk */
+
+	/* change mdp clk */
 	mdp4_set_perf_level();
+
+	mdp4_overlay_dsi_state_set(ST_DSI_PLAYING);
 
 	spin_lock_irqsave(&mdp_spin_lock, flag);
 	mdp_enable_irq(MDP_OVERLAY0_TERM);
@@ -606,7 +643,7 @@ void mdp4_dsi_cmd_overlay_kickoff(struct msm_fb_data_type *mfd,
 	spin_unlock_irqrestore(&mdp_spin_lock, flag);
 	mdp_pipe_kickoff(MDP_OVERLAY0_TERM, mfd);
 
-	if (pipe->blt_addr == 0) {
+	if (dsi_pipe->blt_addr == 0) {
 		/* trigger dsi cmd engine */
 		mipi_dsi_cmd_mdp_sw_trigger();
 	}
@@ -619,9 +656,8 @@ void mdp4_dsi_cmd_overlay(struct msm_fb_data_type *mfd)
 	if (mfd && mfd->panel_power_on) {
 		mdp4_dsi_cmd_dma_busy_wait(mfd);
 
-
-if (dsi_pipe && dsi_pipe->blt_addr)
-		mdp4_dsi_blt_dmap_busy_wait(mfd);
+		if (dsi_pipe && dsi_pipe->blt_addr)
+			mdp4_dsi_blt_dmap_busy_wait(mfd);
 
 		mdp4_overlay_update_dsi_cmd(mfd);
 
