@@ -267,6 +267,10 @@ int mdp4_dtv_off(struct platform_device *pdev)
 	ret = panel_next_off(pdev);
 
 	msleep(20);
+	if (dtv_pipe) {
+		mdp4_overlay_pipe_free(dtv_pipe);
+		dtv_pipe = NULL;
+	}
 
 	dev_info(&pdev->dev, "mdp4_overlay_dtv: off");
 	return ret;
