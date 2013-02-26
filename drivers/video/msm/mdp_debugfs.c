@@ -396,6 +396,10 @@ static ssize_t mdp_stat_read(
 	len = snprintf(bp, dlen, "err_format: %08lu\n", mdp4_stat.err_format);
 	bp += len;
 	dlen -= len;
+	len = snprintf(bp, dlen, "int_overlay1: %08lu\n",
+					mdp4_stat.intr_overlay2);
+	bp += len;
+	dlen -= len;
 
 	tot = (uint32)bp - (uint32)debug_buf;
 	*bp = 0;
