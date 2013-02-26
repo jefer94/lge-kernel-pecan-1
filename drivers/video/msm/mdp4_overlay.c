@@ -2465,6 +2465,8 @@ int mdp4_overlay_play_wait(struct fb_info *info, struct msmfb_overlay_data *req)
 
 	mdp4_overlay_dtv_wait_for_ov(mfd, pipe);
 
+	mdp4_set_perf_level();
+
 	mutex_unlock(&mfd->dma->ov_mutex);
 	return 0;
 }
