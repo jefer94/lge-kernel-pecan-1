@@ -229,6 +229,7 @@ struct msm_panel_common_pdata {
         u32 ov0_wb_size;  /* overlay0 writeback size */
 	u32 ov1_wb_size;  /* overlay1 writeback size */
 	u32 mem_hid;
+        char cont_splash_enabled;
 };
 
 struct lcdc_platform_data {
@@ -247,6 +248,14 @@ struct mddi_platform_data {
 
 struct mipi_dsi_platform_data {
 	int (*dsi_power_save)(int on);
+};
+
+struct mipi_dsi_panel_platform_data {
+	int fpga_ctrl_mode;
+	int fpga_3d_config_addr;
+	int *gpio;
+	struct mipi_dsi_phy_ctrl *phy_ctrl_settings;
+	void (*dsi_pwm_cfg)(void);
 };
 
 #define PANEL_NAME_MAX_LEN 50
