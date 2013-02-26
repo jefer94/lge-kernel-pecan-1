@@ -769,4 +769,12 @@ void mdp_dma_s_update(struct msm_fb_data_type *mfd);
 int mdp_start_histogram(struct fb_info *info);
 int mdp_stop_histogram(struct fb_info *info);
 int mdp_histogram_ctrl(boolean en);
+
+#ifndef CONFIG_FB_MSM_MDP40
+static inline void mdp_dsi_cmd_overlay_suspend(void)
+{
+	/* empty */
+}
+#endif
+
 #endif /* MDP_H */
