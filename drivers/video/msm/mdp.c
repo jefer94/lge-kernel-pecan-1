@@ -101,6 +101,11 @@ static struct mdp_dma_data dma_s_data;
 static struct mdp_dma_data dma_e_data;
 #endif
 #endif
+
+#ifdef CONFIG_FB_MSM_WRITEBACK_MSM_PANEL
+struct mdp_dma_data dma_wb_data;
+#endif
+
 static struct mdp_dma_data dma3_data;
 
 extern ktime_t mdp_dma2_last_update_time;
@@ -542,6 +547,10 @@ void mdp_pipe_kickoff(uint32 term, struct msm_fb_data_type *mfd)
 		mdp_pipe_ctrl(MDP_OVERLAY1_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
 		mdp_lut_enable();
 		outpdw(MDP_BASE + 0x0008, 0);
+	} else if (term == MDP_OVERLAY2_TERM) {
+		mdp_pipe_ctrl(MDP_OVERLAY2_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
+		mdp_lut_enable();
+		outpdw(MDP_BASE + 0x00D0, 0);
 	}
 #else
 	} else if (term == MDP_DMA_S_TERM) {
@@ -884,6 +893,14 @@ static void mdp_drv_init(void)
 	init_completion(&dma_e_data.comp);
 	mutex_init(&dma_e_data.ov_mutex);
 #endif
+#ifdef CONFIG_FB_MSM_WRITEBACK_MSM_PANEL
+	dma_wb_data.busy = FALSE;
+	dma_wb_data.waiting = FALSE;
+	init_completion(&dma_wb_data.comp);
+	mutex_init(&dma_wb_data.ov_mutex);
+#endif
+
+
 
 #ifndef CONFIG_FB_MSM_MDP22
 	init_completion(&mdp_hist_comp);
