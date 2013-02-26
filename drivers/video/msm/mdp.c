@@ -881,6 +881,16 @@ void mdp_pipe_kickoff(uint32 term, struct msm_fb_data_type *mfd)
 	}
 #endif
 }
+
+void set_cont_splashScreen_status(int status)
+{
+	if (!status)
+		mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
+	else
+		mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
+
+}
+
 static int mdp_clk_rate;
 static struct platform_device *pdev_list[MSM_FB_MAX_DEV_LIST];
 static int pdev_list_cnt;
@@ -1507,7 +1517,7 @@ unsigned long mdp_perf_level2clk_rate(uint32 perf_level)
 	return clk_rate;
 }
 
-static int mdp_irq_clk_setup(void)
+static int mdp_irq_clk_setup(char cont_splashScreen)
 {
 	int ret;
 
@@ -1545,11 +1555,19 @@ static int mdp_irq_clk_setup(void)
 	 * mdp_clk should greater than mdp_pclk always
 	 */
 	if (mdp_pdata && mdp_pdata->mdp_core_clk_rate) {
+                if (cont_splashScreen)
+			mdp_clk_rate = clk_get_rate(mdp_clk);
+		else
+			mdp_clk_rate = mdp_pdata->mdp_core_clk_rate;
+
 		mutex_lock(&mdp_clk_lock);
-		clk_set_rate(mdp_clk, mdp_pdata->mdp_core_clk_rate);
+		clk_set_rate(mdp_clk, mdp_clk_rate);
+                if (mdp_lut_clk != NULL)
+			clk_set_rate(mdp_lut_clk, mdp_clk_rate);
 		mutex_unlock(&mdp_clk_lock);
 	}
-	printk(KERN_INFO "mdp_clk: mdp_clk=%d\n", (int)clk_get_rate(mdp_clk));
+
+	MSM_FB_DEBUG("mdp_clk: mdp_clk=%d\n", (int)clk_get_rate(mdp_clk));
 #endif
 
 	return 0;
@@ -1584,7 +1602,7 @@ static int mdp_probe(struct platform_device *pdev)
 		if (unlikely(!msm_mdp_base))
 			return -ENOMEM;
 
-		rc = mdp_irq_clk_setup();
+		rc = mdp_irq_clk_setup(mdp_pdata->cont_splash_enabled);
 
 		if (rc)
 			return rc;
@@ -1593,7 +1611,8 @@ static int mdp_probe(struct platform_device *pdev)
 
 		/* initializing mdp hw */
 #ifdef CONFIG_FB_MSM_MDP40
-		mdp4_hw_init();
+		if (!(mdp_pdata->cont_splash_enabled))
+			mdp4_hw_init();
 		mdp4_fetch_cfg(clk_get_rate(mdp_clk));
 #else
 		mdp_hw_init();
@@ -1628,6 +1647,15 @@ static int mdp_probe(struct platform_device *pdev)
 	mfd->pdev = msm_fb_dev;
 	mfd->mdp_rev = mdp_rev;
 
+	if (mdp_pdata) {
+		if (mdp_pdata->cont_splash_enabled)
+			mfd->cont_splash_done = 0;
+		else
+			mfd->cont_splash_done = 1;
+	}
+
+	set_cont_splashScreen_status(mfd->cont_splash_done);
+
 	mfd->ov0_wb_buf = MDP_ALLOC(sizeof(struct mdp_buf_type));
 	mfd->ov1_wb_buf = MDP_ALLOC(sizeof(struct mdp_buf_type));
 	memset((void *)mfd->ov0_wb_buf, 0, sizeof(struct mdp_buf_type));
@@ -1642,7 +1670,6 @@ static int mdp_probe(struct platform_device *pdev)
 		mfd->ov1_wb_buf->size = 0;
 		mfd->mem_hid = 0;
 	}
-
 	mfd->ov0_blt_state  = 0;
 	mfd->use_ov0_blt = 0 ;
 
@@ -1886,6 +1913,11 @@ static int mdp_probe(struct platform_device *pdev)
 			return -ENOMEM;
 		}
 	}
+
+	/* req bus bandwidth immediately */
+	if (!(mfd->cont_splash_done))
+		mdp_bus_scale_update_request(5);
+
 #endif
 
 	/* set driver data */
