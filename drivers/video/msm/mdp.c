@@ -397,7 +397,10 @@ static int mdp_do_histogram(struct fb_info *info, struct mdp_histogram *hist)
 
 	INIT_COMPLETION(mdp_hist_comp);
 	mdp_hist_frame_cnt = hist->frame_cnt;
-	wait_for_completion_killable(&mdp_hist_comp);
+	if (wait_for_completion_killable(&mdp_hist_comp)) {
+		pr_err("%s(): histogram bin collection killed", __func__);
+		return -EINVAL;
+	}
 
 	return mdp_copy_hist_data(hist);
 }
