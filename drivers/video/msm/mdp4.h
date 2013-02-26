@@ -546,6 +546,15 @@ int mdp4_overlay_blt(struct fb_info *info, struct msmfb_overlay_blt *req);
 int mdp4_overlay_blt_offset(struct fb_info *info,
 					struct msmfb_overlay_blt *req);
 
+struct mdp4_hsic_regs {
+	int32_t params[NUM_HSIC_PARAM];
+	int32_t conv_matrix[3][3];
+	int32_t	pre_limit[6];
+	int32_t post_limit[6];
+	int32_t pre_bias[3];
+	int32_t post_bias[3];
+	int32_t dirty;
+};
 
 #ifdef CONFIG_FB_MSM_MIPI_DSI
 int mdp4_dsi_overlay_blt_start(struct msm_fb_data_type *mfd);
