@@ -2616,6 +2616,11 @@ int mdp4_overlay_play(struct fb_info *info, struct msmfb_overlay_data *req)
 			if (ctrl->panel_mode & MDP4_PANEL_DSI_CMD) {
 				mdp4_dsi_cmd_dma_busy_wait(mfd);
 				mdp4_dsi_cmd_kickoff_video(mfd, pipe);
+                        } else if (ctrl->panel_mode & MDP4_PANEL_DSI_VIDEO) {
+				pipe->flags &= ~MDP_OV_PLAY_NOWAIT;
+				if (mfd->panel_power_on)
+					mdp4_overlay_dsi_video_vsync_push(mfd,
+									  pipe);
 			}
 #else
 			if (ctrl->panel_mode & MDP4_PANEL_MDDI) {
@@ -2623,6 +2628,11 @@ int mdp4_overlay_play(struct fb_info *info, struct msmfb_overlay_data *req)
 				mdp4_mddi_kickoff_video(mfd, pipe);
 			}
 #endif
+                       (ctrl->panel_mode & MDP4_PANEL_LCDC) {
+				pipe->flags &= ~MDP_OV_PLAY_NOWAIT;
+				if (mfd->panel_power_on)
+					mdp4_overlay_lcdc_vsync_push(mfd, pipe);
+			}
 		}
 	}
 
