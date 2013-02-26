@@ -378,6 +378,7 @@ void mdp4_mixer_blend_init(int mixer_num);
 void mdp4_vg_qseed_init(int vg_num);
 void mdp4_vg_csc_setup(int vp_num);
 void mdp4_mixer_csc_setup(uint32 mixer);
+void mdp4_dmap_csc_setup(void);
 void mdp4_vg_csc_update(struct mdp_csc *p);
 irqreturn_t mdp4_isr(int irq, void *ptr);
 void mdp4_overlay_format_to_pipe(uint32 format, struct mdp4_overlay_pipe *pipe);
@@ -648,6 +649,8 @@ int mdp4_writeback_queue_buffer(struct fb_info *info,
 void mdp4_writeback_dma_stop(struct msm_fb_data_type *mfd);
 int mdp4_writeback_init(struct fb_info *info);
 int mdp4_writeback_terminate(struct fb_info *info);
+
+int mdp4_csc_config(struct mdp_csc_cfg_data *config);
 
 u32  mdp4_allocate_writeback_buf(struct msm_fb_data_type *mfd, u32 mix_num);
 void mdp4_init_writeback_buf(struct msm_fb_data_type *mfd, u32 mix_num);
