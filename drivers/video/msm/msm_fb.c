@@ -2927,8 +2927,7 @@ static int msmfb_overlay_blt(struct fb_info *info, unsigned long *argp)
 
 	ret = copy_from_user(&req, argp, sizeof(req));
 	if (ret) {
-		printk(KERN_ERR "%s:msmfb_overlay_blt ioctl failed\n",
-			__func__);
+		pr_err("%s: failed\n", __func__);
 		return ret;
 	}
 
@@ -2941,6 +2940,12 @@ static int msmfb_overlay_blt_off(struct fb_info *info, unsigned long *argp)
 {
 	int	ret;
 	struct msmfb_overlay_blt req;
+
+        ret = copy_from_user(&req, argp, sizeof(req));
+	if (ret) {
+		pr_err("%s: failed\n", __func__);
+		return ret;
+	}
 
 	ret = mdp4_overlay_blt_offset(info, &req);
 
@@ -3091,8 +3096,8 @@ static int msmfb_overlay_3d_sbys(struct fb_info *info, unsigned long *argp)
 
 static int msmfb_mixer_info(struct fb_info *info, unsigned long *argp)
 {
-	int	ret, cnt;
-	struct	msmfb_mixer_info_req req;
+	int     ret, cnt;
+	struct msmfb_mixer_info_req req;
 
 	ret = copy_from_user(&req, argp, sizeof(req));
 	if (ret) {
@@ -3104,7 +3109,7 @@ static int msmfb_mixer_info(struct fb_info *info, unsigned long *argp)
 	req.cnt = cnt;
 	ret = copy_to_user(argp, &req, sizeof(req));
 	if (ret)
-	pr_err("%s:msmfb_overlay_blt_off ioctl failed\n",
+		pr_err("%s:msmfb_overlay_blt_off ioctl failed\n",
 		__func__);
 
 	return cnt;
