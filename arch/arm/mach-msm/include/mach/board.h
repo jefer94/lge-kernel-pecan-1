@@ -226,6 +226,10 @@ struct msm_panel_common_pdata {
         int *mdp_core_clk_table;
         int mdp_rev;
         int (*writeback_offset)(void);
+        int mdp_writeback_memtype;
+	void *mdp_writeback_phys;    /* writeback physical addr */
+	int mdp_writeback_size_ov0;  /* overlay0 writeback size */
+	int mdp_writeback_size_ov1;  /* overlay1 writeback size */
 };
 
 struct lcdc_platform_data {
