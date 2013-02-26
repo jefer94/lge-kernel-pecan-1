@@ -647,4 +647,8 @@ void mdp4_writeback_dma_stop(struct msm_fb_data_type *mfd);
 int mdp4_writeback_init(struct fb_info *info);
 int mdp4_writeback_terminate(struct fb_info *info);
 
+u32  mdp4_allocate_writeback_buf(struct msm_fb_data_type *mfd, u32 mix_num);
+void mdp4_init_writeback_buf(struct msm_fb_data_type *mfd, u32 mix_num);
+void mdp4_free_writeback_buf(struct msm_fb_data_type *mfd, u32 mix_num);
+
 #endif /* MDP_H */
