@@ -1,4 +1,4 @@
-/* Copyright (c) 2011, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -260,11 +260,6 @@ int mdp4_dtv_off(struct platform_device *pdev)
 
 	ret = panel_next_off(pdev);
 
-	if (dtv_pipe) {
-		mdp4_overlay_pipe_free(dtv_pipe);
-		dtv_pipe = NULL;
-	}
-
 	dev_info(&pdev->dev, "mdp4_overlay_dtv: off");
 	return ret;
 }
@@ -300,8 +295,6 @@ static void mdp4_overlay_dtv_alloc_pipe(struct msm_fb_data_type *mfd,
 		MDP_OUTP(MDP_BASE + MDP4_OVERLAYPROC1_BASE + 0x5008,
 			(0x0 & 0xFFF));		/* 12-bit R */
 		mdp_pipe_ctrl(MDP_OVERLAY1_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
-
-		pipe->src_format = MDP_ARGB_8888;
 	} else {
 		switch (mfd->ibuf.bpp) {
 		case 2:
@@ -335,6 +328,12 @@ static void mdp4_overlay_dtv_alloc_pipe(struct msm_fb_data_type *mfd,
 
 	mdp4_overlay_dmae_xy(pipe);	/* dma_e */
 	mdp4_overlayproc_cfg(pipe);
+
+	if (pipe->pipe_type == OVERLAY_TYPE_RGB) {
+		pipe->srcp0_addr = (uint32) mfd->ibuf.buf;
+		mdp4_overlay_rgb_setup(pipe);
+	}
+
 	mdp4_mixer_stage_up(pipe);
 
 	dtv_pipe = pipe; /* keep it */
@@ -361,13 +360,7 @@ int mdp4_overlay_dtv_set(struct msm_fb_data_type *mfd,
 int mdp4_overlay_dtv_unset(struct msm_fb_data_type *mfd,
 			struct mdp4_overlay_pipe *pipe)
 {
-	unsigned int flags;
 	int result = 0;
-
-	flags = pipe->flags;
-	pipe->flags &= ~MDP_OV_PLAY_NOWAIT;
-	mdp4_overlay_dtv_ov_done_push(mfd, pipe);
-	pipe->flags = flags;
 
 	pipe->flags &= ~MDP_OV_PLAY_NOWAIT;
 	mdp4_overlay_dtv_ov_done_push(mfd, pipe);
@@ -472,7 +465,6 @@ static void mdp4_overlay_dtv_wait4_ov_done(struct msm_fb_data_type *mfd,
 void mdp4_overlay_dtv_ov_done_push(struct msm_fb_data_type *mfd,
 			struct mdp4_overlay_pipe *pipe)
 {
-	mdp4_overlay_reg_flush(pipe, 1);
 	mdp4_overlay_dtv_ov_start(mfd);
 
 	if (pipe->flags & MDP_OV_PLAY_NOWAIT)
@@ -538,7 +530,7 @@ void mdp4_dtv_set_black_screen(void)
 	*/
 	temp_src_format = inpdw(rgb_base + 0x0050);
 	MDP_OUTP(rgb_base + 0x0050, temp_src_format | BIT(22));
-	mdp4_overlay_reg_flush(dtv_pipe, 1);
+	mdp4_mixer_stage_up(pipe);
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
 }
 #endif
@@ -597,13 +589,11 @@ static void mdp4_dtv_do_blt(struct msm_fb_data_type *mfd, int enable)
 
 void mdp4_dtv_overlay_blt_start(struct msm_fb_data_type *mfd)
 {
-	mdp4_allocate_writeback_buf(mfd, MDP4_MIXER1);
 	mdp4_dtv_do_blt(mfd, 1);
 }
 
 void mdp4_dtv_overlay_blt_stop(struct msm_fb_data_type *mfd)
 {
-	mdp4_free_writeback_buf(mfd, MDP4_MIXER1);
 	mdp4_dtv_do_blt(mfd, 0);
 }
 
@@ -628,6 +618,7 @@ void mdp4_dtv_overlay(struct msm_fb_data_type *mfd)
 		pipe->srcp0_addr = (uint32) mfd->ibuf.buf;
 		mdp4_overlay_rgb_setup(pipe);
 	}
+	mdp4_mixer_stage_up(pipe);
 	mdp4_overlay_dtv_ov_done_push(mfd, pipe);
 	mutex_unlock(&mfd->dma->ov_mutex);
 }
