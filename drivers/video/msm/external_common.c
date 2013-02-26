@@ -1017,6 +1017,14 @@ static int hdmi_common_read_edid_block(int block, uint8 *edid_buf)
 			b[ndx+8], b[ndx+9], b[ndx+10], b[ndx+11],
 			b[ndx+12], b[ndx+13], b[ndx+14], b[ndx+15]);
 
+static ssize_t hdmi_common_rda_hdmi_primary(struct device *dev,
+	struct device_attribute *attr, char *buf)
+{
+	ssize_t ret = snprintf(buf, PAGE_SIZE, "%d\n",
+		hdmi_prim_display);
+	DEV_DBG("%s: '%d'\n", __func__,	hdmi_prim_display);
+	return ret;
+}
 
 error:
 	return status;
