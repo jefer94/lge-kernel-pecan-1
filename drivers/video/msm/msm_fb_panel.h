@@ -53,6 +53,7 @@ typedef struct panel_id_s {
 #define DTV_PANEL		7	/* DTV */
 #define MIPI_VIDEO_PANEL	8	/* MIPI */
 #define MIPI_CMD_PANEL		9	/* MIPI */
+#define WRITEBACK_PANEL		10	/* Wifi display */
 
 /* panel class */
 typedef enum {
@@ -66,6 +67,7 @@ typedef enum {
 typedef enum {
 	DISPLAY_1 = 0,		/* attached as first device */
 	DISPLAY_2,		/* attached on second device */
+	DISPLAY_3,              /* attached on third writeback device */
 	MAX_PHYS_TARGET_NUM,
 } DISP_TARGET_PHYS;
 
@@ -95,6 +97,7 @@ struct lcdc_panel_info {
 
 struct mddi_panel_info {
 	__u32 vdopkt;
+	boolean is_type1;
 };
 
 /* DSI PHY configuration */
@@ -135,6 +138,7 @@ struct mipi_panel_info {
 	char eof_bllp_power_stop;
 	char bllp_power_stop;
 	char traffic_mode;
+	char frame_rate;
 	/* command mode */
 	char interleave_max;
 	char insert_dcs_cmd;
@@ -144,15 +148,16 @@ struct mipi_panel_info {
 	char stream;	/* 0 or 1 */
 	char mdp_trigger;
 	char dma_trigger;
+	uint32 dsi_pclk_rate;
 };
 
 struct msm_panel_info {
 	__u32 xres;
 	__u32 yres;
-        __u32 mode2_xres;
-        __u32 mode2_yres;
-        __u32 mode2_bpp;
 	__u32 bpp;
+	__u32 mode2_xres;
+	__u32 mode2_yres;
+	__u32 mode2_bpp;
 	__u32 type;
 	__u32 wait_cycle;
 	DISP_TARGET_PHYS pdest;
@@ -163,15 +168,22 @@ struct msm_panel_info {
 	__u32 clk_min;
 	__u32 clk_max;
 	__u32 frame_count;
-        __u32 frame_rate;
+	__u32 frame_rate;
 
 
-	struct mddi_panel_info mddi;
-	struct lcd_panel_info lcd;
-	struct lcdc_panel_info lcdc;
+		struct mddi_panel_info mddi;
+		struct lcd_panel_info lcd;
+		struct lcdc_panel_info lcdc;
 
 	struct mipi_panel_info mipi;
 };
+
+#define MSM_FB_SINGLE_MODE_PANEL(pinfo)		\
+	do {					\
+		(pinfo)->mode2_xres = 0;	\
+		(pinfo)->mode2_yres = 0;	\
+		(pinfo)->mode2_bpp = 0;		\
+	} while (0)
 
 struct msm_fb_panel_data {
 	struct msm_panel_info panel_info;
@@ -183,6 +195,7 @@ struct msm_fb_panel_data {
 	int (*on) (struct platform_device *pdev);
 	int (*off) (struct platform_device *pdev);
 	struct platform_device *next;
+	int (*clk_func) (int enable);
 };
 
 /*===========================================================================

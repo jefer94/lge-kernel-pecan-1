@@ -33,9 +33,11 @@
 #define INTMSK		LCD_CONTROL_BLOCK_BASE|(0x1c)
 #define VPOS		LCD_CONTROL_BLOCK_BASE|(0xc0)
 
+#if 0
 static uint32 mddi_hitachi_curr_vpos;
 static boolean mddi_hitachi_monitor_refresh_value = FALSE;
 static boolean mddi_hitachi_report_refresh_measurements = FALSE;
+#endif
 static boolean is_lcd_on = -1;
 
 /* The comment from AMSS codes:
@@ -45,7 +47,6 @@ static boolean is_lcd_on = -1;
  * XXX: TODO: change this values for INNOTEK PANEL */
 static uint32 mddi_hitachi_rows_per_second = 31250;
 static uint32 mddi_hitachi_rows_per_refresh = 480;
-static uint32 mddi_hitachi_usecs_per_refresh = 15360; /* rows_per_refresh / rows_per_second */
 extern boolean mddi_vsync_detect_enabled;
 
 static msm_fb_vsync_handler_type mddi_hitachi_vsync_handler = NULL;
@@ -91,6 +92,11 @@ struct display_table2 {
 #define REGFLAG_DELAY             0XFFFE
 #define REGFLAG_END_OF_TABLE      0xFFFF   // END OF REGISTERS MARKER
 
+static struct display_table mddi_hitachi_2c[] = {
+	{0x2c, 4, {0x00, 0x00, 0x00, 0x00}},
+	{REGFLAG_END_OF_TABLE, 0x00, {}}
+};
+
 static struct display_table mddi_hitachi_position_table[] = {
 	// set column address 
 	{0x2a,  4, {0x00, 0x00, 0x01, 0x3f}},
@@ -125,6 +131,8 @@ static struct display_table mddi_hitachi_img_end[] = {
 	{REGFLAG_END_OF_TABLE, 0x00, {}}
 };
 #endif
+
+#if 0
 static struct display_table mddi_hitachi_display_off[] = {
 	// Display off sequence
 	{0x28, 4, {0x00, 0x00, 0x00, 0x00}},
@@ -133,6 +141,8 @@ static struct display_table mddi_hitachi_display_off[] = {
 	{REGFLAG_DELAY, 130, {}},
 	{REGFLAG_END_OF_TABLE, 0x00, {}}
 };
+#endif
+
 static struct display_table mddi_hitachi_sleep_mode_on_data[] = {
 	// Display off sequence
 	{0x28, 4, {0x00, 0x00, 0x00, 0x00}},
@@ -208,6 +218,8 @@ static struct display_table mddi_hitachi_initialize_1st[] = {
 	{0x2c,  4, {0x00, 0x00, 0x00, 0x00}},
 	{REGFLAG_END_OF_TABLE, 0x00, {}}
 };
+
+#ifdef CONFIG_MACH_MSM7X27_THUNDERC
 static struct display_table mddi_hitachi_initialize_3rd_vs660[] = {
 
 	// Power ON Sequence 
@@ -263,6 +275,9 @@ static struct display_table mddi_hitachi_initialize_3rd_vs660[] = {
 
 	{REGFLAG_END_OF_TABLE, 0x00, {}}
 };
+#endif
+
+#ifdef CONFIG_MACH_MSM7X27_THUNDERG
 static struct display_table mddi_hitachi_initialize_3rd_p500[] = {
 
 	// Power ON Sequence 
@@ -317,6 +332,8 @@ static struct display_table mddi_hitachi_initialize_3rd_p500[] = {
 
 	{REGFLAG_END_OF_TABLE, 0x00, {}}
 };
+#endif
+
 void display_table(struct display_table *table, unsigned int count)
 {
 	unsigned int i;
@@ -344,6 +361,7 @@ void display_table(struct display_table *table, unsigned int count)
 	
 }
 
+#if 0
 static void compare_table(struct display_table *table, unsigned int count)
 {
 	unsigned int i;
@@ -369,7 +387,7 @@ static void compare_table(struct display_table *table, unsigned int count)
        	}
     }	
 }
-
+#endif
 
 static void mddi_hitachi_vsync_set_handler(msm_fb_vsync_handler_type handler,	/* ISR to be executed */
 					 void *arg)
@@ -406,8 +424,13 @@ static void mddi_hitachi_vsync_set_handler(msm_fb_vsync_handler_type handler,	/*
 	}
 }
 
+/* FIXME: following function has no meaning any more
+ * should be eliminated
+ * 2010-11-16, cleaneye.kim@lge.com
+ */
 static void mddi_hitachi_lcd_vsync_detected(boolean detected)
 {
+#if 0
 	/* static timetick_type start_time = 0; */
 	static struct timeval start_time;
 	static boolean first_time = TRUE;
@@ -416,6 +439,7 @@ static void mddi_hitachi_lcd_vsync_detected(boolean detected)
 	struct timeval now;
 	uint32 elapsed_us;
 	uint32 num_vsyncs;
+#endif
 
 /* LGE_CHANGE
   * Close below code to fix screen shaking problem
@@ -496,12 +520,29 @@ static void mddi_hitachi_lcd_vsync_detected(boolean detected)
 #endif
 }
 
+static void hitachi_workaround(void)
+{
+	if (lge_bd_rev <= LGE_REV_E) {
+		/* Use workaround code for 1st cut LCD.
+		 * 2010-04-22, minjong.gong@lge.com
+		 */
+		display_table(mddi_hitachi_2c,
+					  sizeof(mddi_hitachi_2c) / sizeof(struct display_table));
+	}
+	/* Add code to prevent LCD shift.
+	 * 2010-05-18, minjong.gong@lge.com
+	 */
+	display_table(mddi_hitachi_position_table,
+				  sizeof(mddi_hitachi_position_table) / sizeof(struct display_table));
+}
+
 static int mddi_hitachi_lcd_on(struct platform_device *pdev)
 {
 	EPRINTK("%s: started.\n", __func__);
 
 #if defined(CONFIG_MACH_MSM7X27_THUNDERG) || defined(CONFIG_MACH_MSM7X27_THUNDERC) || defined(CONFIG_MACH_MSM7X27_THUNDERA)
 	if (system_state == SYSTEM_BOOTING && mddi_hitachi_pdata->initialized) {
+		hitachi_workaround();
 		is_lcd_on = TRUE;
 		return 0;
 	}
@@ -614,8 +655,7 @@ ssize_t mddi_hitachi_lcd_store_onoff(struct device *dev, struct device_attribute
 		is_lcd_on = FALSE;
 	}
 
-	//return 0;
-	return count;
+	return 0;
 }
 
 int mddi_hitachi_position(void)
@@ -659,7 +699,7 @@ static int __init mddi_hitachi_lcd_probe(struct platform_device *pdev)
 	return 0;
 }
 
-static struct platform_driver this_driver = {
+static struct platform_driver this_driver __refdata = {
 	.probe  = mddi_hitachi_lcd_probe,
 	.driver = {
 		.name   = "mddi_hitachi_hvga",
@@ -691,10 +731,6 @@ static int mddi_hitachi_lcd_init(void)
 		pinfo->bpp = 16;
 	
 		// vsync config
-#ifndef CONFIG_VSYNC_ON
-		pinfo->lcd.vsync_enable = FALSE;
-#endif	
-
 		pinfo->lcd.vsync_enable = TRUE;
 		pinfo->lcd.refx100 = (mddi_hitachi_rows_per_second * 100) /
                         		mddi_hitachi_rows_per_refresh;
@@ -707,12 +743,7 @@ static int mddi_hitachi_lcd_init(void)
 		pinfo->lcd.v_back_porch = 6;
 		pinfo->lcd.v_front_porch = 6;
 		pinfo->lcd.v_pulse_width = 4;
-		
-#ifndef CONFIG_VSYNC_ON
-		pinfo->lcd.hw_vsync_mode = FALSE;
-#endif		
 
-		
 		pinfo->lcd.hw_vsync_mode = TRUE;
 		pinfo->lcd.vsync_notifier_period = (1 * HZ);
 

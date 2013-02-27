@@ -56,6 +56,32 @@ extern uint32 mdp_intr_mask;
 int first_pixel_start_x;
 int first_pixel_start_y;
 
+ssize_t mdp_dma_lcdc_show_event(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	ssize_t ret = 0;
+
+	if (atomic_read(&vsync_cntrl.suspend) > 0 ||
+		atomic_read(&vsync_cntrl.vsync_resume) == 0)
+		return 0;
+
+	INIT_COMPLETION(vsync_cntrl.vsync_wait);
+
+	ret = wait_for_completion_interruptible_timeout(&vsync_cntrl.vsync_wait,
+		msecs_to_jiffies(VSYNC_PERIOD * 4));
+	if (ret <= 0) {
+		ret = snprintf(buf, PAGE_SIZE, "VSYNC=%llu",
+				ktime_to_ns(ktime_get()));
+		buf[strlen(buf) + 1] = '\0';
+		return ret;
+    }
+
+	ret = snprintf(buf, PAGE_SIZE, "VSYNC=%llu",
+			ktime_to_ns(vsync_cntrl.vsync_time));
+	buf[strlen(buf) + 1] = '\0';
+	return ret;
+}
+
 int mdp_lcdc_on(struct platform_device *pdev)
 {
 	int lcdc_width;
@@ -110,15 +136,18 @@ int mdp_lcdc_on(struct platform_device *pdev)
 	fbi = mfd->fbi;
 	var = &fbi->var;
 
+	vsync_cntrl.dev = mfd->fbi->dev;
+	atomic_set(&vsync_cntrl.suspend, 0);
+
 	/* MDP cmd block enable */
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
 
 	bpp = fbi->var.bits_per_pixel / 8;
 	buf = (uint8 *) fbi->fix.smem_start;
 
-        buf += calc_fb_offset(mfd, fbi, bpp);
+	buf += calc_fb_offset(mfd, fbi, bpp);
 
-	dma2_cfg_reg = DMA_PACK_ALIGN_LSB | DMA_DITHER_EN | DMA_OUT_SEL_LCDC;
+	dma2_cfg_reg = DMA_PACK_ALIGN_LSB | DMA_OUT_SEL_LCDC;
 
 	if (mfd->fb_imgType == MDP_BGR_565)
 		dma2_cfg_reg |= DMA_PACK_PATTERN_BGR;
@@ -314,10 +343,52 @@ int mdp_lcdc_off(struct platform_device *pdev)
 
 	ret = panel_next_off(pdev);
 
+        atomic_set(&vsync_cntrl.suspend, 1);
+	atomic_set(&vsync_cntrl.vsync_resume, 0);
+	complete_all(&vsync_cntrl.vsync_wait);
+
 	/* delay to make sure the last frame finishes */
 	msleep(16);
 
 	return ret;
+}
+
+void mdp_dma_lcdc_vsync_init(int cndx)
+{
+    /* nothing to do */
+}
+
+void mdp_dma_lcdc_vsync_ctrl(int enable)
+{
+	unsigned long flag;
+	int disabled_clocks;
+
+	if (vsync_cntrl.vsync_irq_enabled == enable)
+		return;
+
+	spin_lock_irqsave(&mdp_spin_lock, flag);
+	if (!enable)
+		INIT_COMPLETION(vsync_cntrl.vsync_wait);
+
+	vsync_cntrl.vsync_irq_enabled = enable;
+	if (!enable)
+		vsync_cntrl.disabled_clocks = 0;
+	disabled_clocks = vsync_cntrl.disabled_clocks;
+	spin_unlock_irqrestore(&mdp_spin_lock, flag);
+
+	if (enable && disabled_clocks) {
+		mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
+		spin_lock_irqsave(&mdp_spin_lock, flag);
+		outp32(MDP_INTR_CLEAR, LCDC_FRAME_START);
+		mdp_intr_mask |= LCDC_FRAME_START;
+		outp32(MDP_INTR_ENABLE, mdp_intr_mask);
+		mdp_enable_irq(MDP_VSYNC_TERM);
+		spin_unlock_irqrestore(&mdp_spin_lock, flag);
+	}
+
+	if (vsync_cntrl.vsync_irq_enabled &&
+		atomic_read(&vsync_cntrl.suspend) == 0)
+		atomic_set(&vsync_cntrl.vsync_resume, 1);
 }
 
 void mdp_lcdc_update(struct msm_fb_data_type *mfd)
@@ -339,7 +410,7 @@ void mdp_lcdc_update(struct msm_fb_data_type *mfd)
 	bpp = fbi->var.bits_per_pixel / 8;
 	buf = (uint8 *) fbi->fix.smem_start;
 
-        buf += calc_fb_offset(mfd, fbi, bpp);
+	buf += calc_fb_offset(mfd, fbi, bpp);
 
 	dma_base = DMA_P_BASE;
 

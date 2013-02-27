@@ -1,4 +1,4 @@
-/* Copyright (c) 2008-2010, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2008-2012, Code Aurora Forum. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -38,8 +38,15 @@
 #include <linux/fb.h>
 #include <linux/hrtimer.h>
 #include <linux/msm_mdp.h>
-
+#include <linux/memory_alloc.h>
 #include <mach/hardware.h>
+#include <linux/ion.h>
+
+#ifdef CONFIG_MSM_BUS_SCALING
+#include <mach/msm_bus.h>
+#include <mach/msm_bus_board.h>
+#endif
+
 #include <linux/io.h>
 
 #include <asm/system.h>
@@ -47,7 +54,15 @@
 
 #include "msm_fb_panel.h"
 
+extern uint32 mdp_hw_revision;
+extern ulong mdp4_display_intf;
 extern int mdp_rev;
+extern struct mdp_csc_cfg mdp_csc_convert[4];
+
+#define MDP4_REVISION_V1		0
+#define MDP4_REVISION_V2		1
+#define MDP4_REVISION_V2_1	2
+#define MDP4_REVISION_NONE	0xffffffff
 
 #ifdef BIT
 #undef BIT
@@ -68,6 +83,13 @@ extern int mdp_rev;
 #define MDPOP_SHARPENING	BIT(11) /* enable sharpening */
 #define MDPOP_BLUR		BIT(12) /* enable blur */
 #define MDPOP_FG_PM_ALPHA       BIT(13)
+#define MDP_ALLOC(x)  kmalloc(x, GFP_KERNEL)
+
+struct mdp_buf_type {
+	struct ion_handle *ihdl;
+	u32 phys_addr;
+	u32 size;
+};
 
 struct mdp_table_entry {
 	uint32_t reg;
@@ -76,6 +98,23 @@ struct mdp_table_entry {
 
 extern struct mdp_ccs mdp_ccs_yuv2rgb ;
 extern struct mdp_ccs mdp_ccs_rgb2yuv ;
+extern unsigned char hdmi_prim_display;
+
+struct vsync {
+	ktime_t vsync_time;
+	struct completion vsync_comp;
+	struct device *dev;
+	struct work_struct vsync_work;
+	int vsync_irq_enabled;
+	int vsync_dma_enabled;
+	int disabled_clocks;
+	struct completion vsync_wait;
+	atomic_t suspend;
+	atomic_t vsync_resume;
+	int sysfs_created;
+};
+
+extern struct vsync vsync_cntrl;
 
 /*
  * MDP Image Structure
@@ -126,6 +165,7 @@ typedef enum {
 	MDP_DMA_E_BLOCK,
 	MDP_OVERLAY0_BLOCK,
 	MDP_OVERLAY1_BLOCK,
+	MDP_OVERLAY2_BLOCK,
 	MDP_MAX_BLOCK
 } MDP_BLOCK_TYPE;
 
@@ -206,10 +246,26 @@ typedef struct mdp_ibuf_s {
 
 struct mdp_dma_data {
 	boolean busy;
+	boolean dmap_busy;
 	boolean waiting;
 	struct mutex ov_mutex;
 	struct semaphore mutex;
 	struct completion comp;
+	struct completion dmap_comp;
+};
+
+extern struct list_head mdp_hist_lut_list;
+extern struct mutex mdp_hist_lut_list_mutex;
+struct mdp_hist_lut_mgmt {
+	uint32_t block;
+	struct mutex lock;
+	struct list_head list;
+};
+
+struct mdp_hist_lut_info {
+	uint32_t block;
+	boolean is_enabled, has_sel_update;
+	int bank_sel;
 };
 
 #define MDP_CMD_DEBUG_ACCESS_BASE   (MDP_BASE+0x10000)
@@ -224,6 +280,8 @@ struct mdp_dma_data {
 #define MDP_OVERLAY1_TERM 0x40
 #endif
 #define MDP_HISTOGRAM_TERM 0x80
+#define MDP_OVERLAY2_TERM 0x100
+#define MDP_VSYNC_TERM 0x1000
 
 #define ACTIVE_START_X_EN BIT(31)
 #define ACTIVE_START_Y_EN BIT(31)
@@ -243,6 +301,7 @@ struct mdp_dma_data {
 #define MDP_PPP_DONE 				BIT(0)
 #define TV_OUT_DMA3_DONE    BIT(6)
 #define TV_ENC_UNDERRUN     BIT(7)
+#define MDP_PRIM_RDPTR      BIT(8)
 #define TV_OUT_DMA3_START   BIT(13)
 #define MDP_HIST_DONE       BIT(20)
 
@@ -518,7 +577,7 @@ struct mdp_dma_data {
 #define DMA_DSTC1B_5BITS BIT(2)
 #define DMA_DSTC2R_5BITS BIT(4)
 
-// #define DMA_PACK_TIGHT                      BIT(6) // pecan
+#define DMA_PACK_TIGHT                      BIT(6)
 #define DMA_PACK_LOOSE                      0
 #define DMA_PACK_ALIGN_LSB                  0
 /*
@@ -535,8 +594,12 @@ struct mdp_dma_data {
 #define DMA_IBUF_FORMAT_RGB888              0
 #define DMA_IBUF_FORMAT_xRGB8888_OR_ARGB8888  BIT(26)
 
+#ifdef CONFIG_FB_MSM_MDP303
+#define DMA_OUT_SEL_DSI_CMD                  BIT(19)
+#define DMA_OUT_SEL_DSI_VIDEO               (3 << 19)
+#endif
+
 #ifdef CONFIG_FB_MSM_MDP22
-#define DMA_PACK_TIGHT                      BIT(6) // pecan 
 #define DMA_OUT_SEL_MDDI BIT(14)
 #define DMA_AHBM_LCD_SEL_PRIMARY 0
 #define DMA_AHBM_LCD_SEL_SECONDARY BIT(15)
@@ -550,10 +613,10 @@ struct mdp_dma_data {
 #define DMA_IBUF_NONCONTIGUOUS BIT(21)
 #else
 #define DMA_OUT_SEL_MDDI                    BIT(19)
-#define DMA_PACK_TIGHT                      0  // pecan
 #define DMA_AHBM_LCD_SEL_PRIMARY            0
 #define DMA_AHBM_LCD_SEL_SECONDARY          0
 #define DMA_IBUF_C3ALPHA_EN                 0
+#define DMA_BUF_FORMAT_RGB565		BIT(25)
 #define DMA_DITHER_EN                       BIT(24)	/* dma_p */
 #define DMA_DEFLKR_EN                       BIT(24)	/* dma_e */
 #define DMA_MDDI_DMAOUT_LCD_SEL_PRIMARY     0
@@ -666,16 +729,73 @@ void mdp_dma3_update(struct msm_fb_data_type *mfd);
 int mdp_lcdc_on(struct platform_device *pdev);
 int mdp_lcdc_off(struct platform_device *pdev);
 void mdp_lcdc_update(struct msm_fb_data_type *mfd);
+
+#ifdef CONFIG_FB_MSM_MDP303
+int mdp_dsi_video_on(struct platform_device *pdev);
+int mdp_dsi_video_off(struct platform_device *pdev);
+void mdp_dsi_video_update(struct msm_fb_data_type *mfd);
+void mdp3_dsi_cmd_dma_busy_wait(struct msm_fb_data_type *mfd);
+#endif
+
+void set_cont_splashScreen_status(int);
+
 int mdp_hw_cursor_update(struct fb_info *info, struct fb_cursor *cursor);
+#if defined(CONFIG_FB_MSM_OVERLAY) && defined(CONFIG_FB_MSM_MDP40)
+int mdp_hw_cursor_sync_update(struct fb_info *info, struct fb_cursor *cursor);
+#else
+static inline int mdp_hw_cursor_sync_update(struct fb_info *info,
+		struct fb_cursor *cursor)
+{
+	return 0;
+}
+static inline int mdp4_overlay_dsi_state_get(void)
+{
+	return 0;
+}
+#endif
+
 void mdp_enable_irq(uint32 term);
 void mdp_disable_irq(uint32 term);
 void mdp_disable_irq_nosync(uint32 term);
-int mdp_get_bytes_per_pixel(uint32_t format);
+int mdp_get_bytes_per_pixel(uint32_t format,
+				 struct msm_fb_data_type *mfd);
+int mdp_set_core_clk(uint16 perf_level);
+unsigned long mdp_get_core_clk(void);
+unsigned long mdp_perf_level2clk_rate(uint32 perf_level);
+
+#ifdef CONFIG_MSM_BUS_SCALING
+int mdp_bus_scale_update_request(uint32_t index);
+#else
+static inline int mdp_bus_scale_update_request(uint32_t index)
+{
+	return 0;
+}
+#endif
+void mdp_dma_lcdc_vsync_init(int cndx);
+void mdp_dma_vsync_ctrl(int enable);
+void mdp_dma_lcdc_vsync_ctrl(int enable);
+ssize_t mdp_dma_lcdc_show_event(struct device *dev,
+		struct device_attribute *attr, char *buf);
 
 #ifdef MDP_HW_VSYNC
 void mdp_hw_vsync_clk_enable(struct msm_fb_data_type *mfd);
 void mdp_hw_vsync_clk_disable(struct msm_fb_data_type *mfd);
 #endif
 
+#ifdef CONFIG_DEBUG_FS
+int mdp_debugfs_init(void);
+#endif
+
 void mdp_dma_s_update(struct msm_fb_data_type *mfd);
+int mdp_start_histogram(struct fb_info *info);
+int mdp_stop_histogram(struct fb_info *info);
+int mdp_histogram_ctrl(boolean en);
+
+#ifndef CONFIG_FB_MSM_MDP40
+static inline void mdp_dsi_cmd_overlay_suspend(void)
+{
+	/* empty */
+}
+#endif
+
 #endif /* MDP_H */

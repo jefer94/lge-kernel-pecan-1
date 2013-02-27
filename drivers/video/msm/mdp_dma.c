@@ -1,4 +1,4 @@
-/* Copyright (c) 2008-2009, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2008-2011, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -34,10 +34,6 @@
 
 #include <linux/fb.h>
 
-#ifdef CONFIG_MACH_LGE
-#include <mach/board_lge.h>
-#endif
-
 #include "mdp.h"
 #include "msm_fb.h"
 #include "mddihost.h"
@@ -59,65 +55,9 @@ extern u32 msm_fb_debug_enabled;
 extern struct workqueue_struct *mdp_dma_wq;
 
 int vsync_start_y_adjust = 4;
+#ifdef CONFIG_LGE_BLUE_ERROR_HANDLER
 extern int LG_ErrorHandler_enable ;	/*LGE_CHANGE [bluerti@lge.com] */
-
-/* LGE_CHANGE
-  * Change to apply workaround code according to the board revision info.
-  * 2010-06-10, minjong.gong@lge.com
-  */
-#ifdef CONFIG_FB_MSM_MDDI_HITACHI_HVGA
-#include <mach/board_lge.h>
-
-struct display_table {
-    unsigned reg;
-    unsigned char count;
-    unsigned char val_list[20];
-};
-
-#define REGFLAG_END_OF_TABLE      0xFFFF   // END OF REGISTERS MARKER
-
-static struct display_table mddi_hitachi_2c[] = {
-	{0x2c, 4, {0x00, 0x00, 0x00, 0x00}},
-	{REGFLAG_END_OF_TABLE, 0x00, {}}
-};
-static struct display_table mddi_hitachi_position_table[] = {
-	// set column address 
-	{0x2a,  4, {0x00, 0x00, 0x01, 0x3f}},
-	// set page address 
-	{0x2b,  4, {0x00, 0x00, 0x01, 0xdf}},
-	{REGFLAG_END_OF_TABLE, 0x00, {}}
-};
-extern void display_table(struct display_table *table, unsigned int count);
 #endif
-
-/* LGE_CHANGE [dojip.kim@lge.com] 2010-05-20,
- * add code to prevent LCD shift
- */
-#ifdef CONFIG_FB_MSM_MDDI_NOVATEK_HVGA
-#define REGFLAG_END_OF_TABLE      0xFFFF   // END OF REGISTERS MARKER
-
-	struct display_table {
-	    unsigned reg;
-	    unsigned char count;
-	    unsigned val_list[256];
-	};
-
-	struct display_table mddi_novatek_position_table[] = {
-		// set horizontal address 
-		{0x2a00, 1, {0x0000}}, // XSA
-		{0x2a01, 1, {0x0000}}, // XSA
-		{0x2a02, 1, {0x0000}}, // XEA
-		{0x2a03, 1, {0x013f}}, // XEA, 320-1
-		// set vertical address 
-		{0x2b00, 1, {0x0000}}, // YSA
-		{0x2b01, 1, {0x0000}}, // YSA
-		{0x2b02, 1, {0x0000}}, // YEA
-		{0x2b03, 1, {0x01df}}, // YEA, 480-1
-		{REGFLAG_END_OF_TABLE, 0x00, {}}
-	};
-extern void display_table(struct display_table *table, unsigned int count);
-#endif
-
 static void mdp_dma2_update_lcd(struct msm_fb_data_type *mfd)
 {
 	MDPIBUF *iBuf = &mfd->ibuf;
@@ -127,8 +67,10 @@ static void mdp_dma2_update_lcd(struct msm_fb_data_type *mfd)
 	uint8 *src;
 	uint32 mddi_ld_param;
 	uint16 mddi_vdo_packet_reg;
+#ifndef CONFIG_FB_MSM_MDP303
 	struct msm_fb_panel_data *pdata =
 	    (struct msm_fb_panel_data *)mfd->pdev->dev.platform_data;
+#endif
 	uint32 ystride = mfd->fbi->fix.line_length;
 	uint32 mddi_pkt_desc;
 
@@ -199,6 +141,10 @@ static void mdp_dma2_update_lcd(struct msm_fb_data_type *mfd)
 			dma2_cfg_reg |= DMA_MDDI_DMAOUT_LCD_SEL_EXTERNAL;
 			mddi_ld_param = 2;
 		}
+#ifdef CONFIG_FB_MSM_MDP303
+	} else if (mfd->panel_info.type == MIPI_CMD_PANEL) {
+		dma2_cfg_reg |= DMA_OUT_SEL_DSI_CMD;
+#endif
 	} else {
 		if (mfd->panel_info.pdest == DISPLAY_1) {
 			dma2_cfg_reg |= DMA_AHBM_LCD_SEL_PRIMARY;
@@ -209,70 +155,15 @@ static void mdp_dma2_update_lcd(struct msm_fb_data_type *mfd)
 		}
 	}
 
+	/* LGE_CHANGE, Enabling dither */
 	dma2_cfg_reg |= DMA_DITHER_EN;
 
-#if CONFIG_LGE_HIDDEN_RESET_PATCH 
-	if (on_hidden_reset) {
-		src = (uint8 *) lge_get_fb_copy_phys_addr();
-	} else {
-		src = (uint8 *) iBuf->buf;
-		/* starting input address */
-	}
-#else
 	src = (uint8 *) iBuf->buf;
 	/* starting input address */
-#endif
-
-#if defined(CONFIG_MACH_MSM7X27_HAZEL)
-	/* Hazel esd recovery by bongkyu.kim */
-extern void tovis_qvga_esd_recovery(void);
-	tovis_qvga_esd_recovery();
-#endif
-
-#if defined(CONFIG_MACH_MSM7X27_PECAN) || defined(CONFIG_MACH_MSM7X27_HAZEL)
-	iBuf->dma_x = iBuf->dma_y = 0;	
-	iBuf->dma_w = mdp_curr_dma2_update_width = 240; 	//iBuf->dma_w;	
-	iBuf->dma_h = mdp_curr_dma2_update_height = 320; //iBuf->dma_h; 
-#else
 	src += iBuf->dma_x * outBpp + iBuf->dma_y * ystride;
-#endif /* CONFIG_MACH_MSM7X27_PECAN */
 
-//	mdp_curr_dma2_update_width = iBuf->dma_w;
-//	mdp_curr_dma2_update_height = iBuf->dma_h;
-
-#if defined(CONFIG_FB_MSM_MDDI_HITACHI_HVGA) && defined(CONFIG_MACH_MSM7X27_THUNDERG)
-	if (lge_bd_rev <= LGE_REV_E) {
-		/* Use workaround code for 1st cut LCD.
-		 * 2010-04-22, minjong.gong@lge.com
-		 */
-		display_table(mddi_hitachi_2c,
-				sizeof(mddi_hitachi_2c) / sizeof(struct display_table));
-	}
-	/* Add code to prevent LCD shift.
-	 * 2010-05-18, minjong.gong@lge.com
-	 */
-	display_table(mddi_hitachi_position_table,
-			sizeof(mddi_hitachi_2c) / sizeof(struct display_table));
-#elif defined(CONFIG_FB_MSM_MDDI_HITACHI_HVGA) && defined(CONFIG_MACH_MSM7X27_THUNDERC)
-	if (lge_bd_rev <= LGE_REV_D){
-		/* Use workaround code for 1st cut LCD.
-		 * 2010-04-22, minjong.gong@lge.com
-		 */
-		display_table(mddi_hitachi_2c, sizeof(mddi_hitachi_2c) / sizeof(struct display_table));
-	}
-	/* Add code to prevent LCD shift.
-	 * 2010-05-18, minjong.gong@lge.com
-	 */
-	display_table(mddi_hitachi_position_table, sizeof(mddi_hitachi_2c) / sizeof(struct display_table));
-#elif defined(CONFIG_FB_MSM_MDDI_HITACHI_HVGA) && defined(CONFIG_MACH_MSM7X27_THUNDERA)
-	display_table(mddi_hitachi_2c,
-			sizeof(mddi_hitachi_2c) / sizeof(struct display_table));
-#endif
-
-#ifdef CONFIG_FB_MSM_MDDI_NOVATEK_HVGA
-	display_table(mddi_novatek_position_table, 
-		sizeof(mddi_novatek_position_table) / sizeof(struct display_table));
-#endif
+	mdp_curr_dma2_update_width = iBuf->dma_w;
+	mdp_curr_dma2_update_height = iBuf->dma_h;
 
 	/* MDP cmd block enable */
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
@@ -301,6 +192,8 @@ extern void tovis_qvga_esd_recovery(void);
 		dma2_cfg_reg |= DMA_DSTC0G_6BITS |	/* 565 16BPP */
 		    DMA_DSTC1B_5BITS | DMA_DSTC2R_5BITS;
 	}
+
+#ifndef CONFIG_FB_MSM_MDP303
 
 	if (mddi_dest) {
 
@@ -338,6 +231,7 @@ extern void tovis_qvga_esd_recovery(void);
 		pdata->set_rect(iBuf->dma_x, iBuf->dma_y, iBuf->dma_w,
 				iBuf->dma_h);
 	}
+#endif
 
 	/* dma2 config register */
 #ifdef MDP_HW_VSYNC
@@ -407,6 +301,40 @@ enum hrtimer_restart mdp_dma2_vsync_hrtimer_handler(struct hrtimer *ht)
 
 	return HRTIMER_NORESTART;
 }
+
+
+#ifdef CONFIG_FB_MSM_MDP303
+static int busy_wait_cnt;
+
+void	mdp3_dsi_cmd_dma_busy_wait(struct msm_fb_data_type *mfd)
+{
+	unsigned long flag;
+	int need_wait = 0;
+
+#ifdef DSI_CLK_CTRL
+	mod_timer(&dsi_clock_timer, jiffies + HZ); /* one second */
+#endif
+
+	spin_lock_irqsave(&mdp_spin_lock, flag);
+#ifdef DSI_CLK_CTRL
+	if (mipi_dsi_clk_on == 0)
+		mipi_dsi_clk_enable();
+#endif
+
+	if (mfd->dma->busy == TRUE) {
+		if (busy_wait_cnt == 0)
+			INIT_COMPLETION(mfd->dma->comp);
+		busy_wait_cnt++;
+		need_wait++;
+	}
+	spin_unlock_irqrestore(&mdp_spin_lock, flag);
+
+	if (need_wait) {
+		/* wait until DMA finishes the current job */
+		wait_for_completion(&mfd->dma->comp);
+	}
+}
+#endif
 
 static void mdp_dma_schedule(struct msm_fb_data_type *mfd, uint32 term)
 {
@@ -608,17 +536,16 @@ void mdp_set_dma_pan_info(struct fb_info *info, struct mdp_dirty_region *dirty,
 			  boolean sync)
 {
 	struct msm_fb_data_type *mfd = (struct msm_fb_data_type *)info->par;
-        struct fb_info *fbi = mfd->fbi;
+	struct fb_info *fbi = mfd->fbi;
 	MDPIBUF *iBuf;
 	int bpp = info->var.bits_per_pixel / 8;
-        
 
 	down(&mfd->sem);
 
 	iBuf = &mfd->ibuf;
 	iBuf->buf = (uint8 *) info->fix.smem_start;
-	
-        iBuf->buf += calc_fb_offset(mfd, fbi, bpp);
+
+	iBuf->buf += calc_fb_offset(mfd, fbi, bpp);
 
 	iBuf->ibuf_width = info->var.xres_virtual;
 	iBuf->bpp = bpp;
@@ -660,11 +587,13 @@ void mdp_dma_pan_update(struct fb_info *info)
 		/* waiting for this update to complete */
 		mfd->pan_waiting = TRUE;
 		wait_for_completion_killable(&mfd->pan_comp);
+#ifdef CONFIG_LGE_BLUE_ERROR_HANDLER
 		/*LGE_CHANGE_S [bluerti@lge.com] 2009-08-24 */
 		if (LG_ErrorHandler_enable) {
 			mfd->dma_fnc(mfd);
 		}
 		/*LGE_CHANGE_E [bluerti@lge.com] */
+#endif
 	} else
 		mfd->dma_fnc(mfd);
 }

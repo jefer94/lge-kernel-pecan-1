@@ -20,7 +20,10 @@
 #include "mipi_dsi.h"
 #include "mipi_toshiba.h"
 
-static struct msm_panel_common_pdata *mipi_toshiba_pdata;
+static struct pwm_device *bl_lpm;
+static struct mipi_dsi_panel_platform_data *mipi_toshiba_pdata;
+
+#define TM_GET_PID(id) (((id) & 0xff00)>>8)
 
 static struct dsi_buf toshiba_tx_buf;
 static struct dsi_buf toshiba_rx_buf;
@@ -55,7 +58,7 @@ static struct dsi_cmd_desc toshiba_display_off_cmds[] = {
 	{DTYPE_DCS_WRITE, 1, 0, 0, 120, sizeof(enter_sleep), enter_sleep}
 };
 
-static struct dsi_cmd_desc toshiba_display_on_cmds[] = {
+static struct dsi_cmd_desc toshiba_wvga_display_on_cmds[] = {
 	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(mcap_off), mcap_off},
 	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(ena_test_reg), ena_test_reg},
 	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(two_lane), two_lane},
@@ -87,8 +90,10 @@ static int mipi_toshiba_lcd_on(struct platform_device *pdev)
 	if (mfd->key != MFD_KEY)
 		return -EINVAL;
 
-	mipi_dsi_cmds_tx(&toshiba_tx_buf, toshiba_display_on_cmds,
+	mutex_lock(&mfd->dma->ov_mutex);
+	mipi_dsi_cmds_tx(mfd, &toshiba_tx_buf, toshiba_display_on_cmds,
 			ARRAY_SIZE(toshiba_display_on_cmds));
+	mutex_unlock(&mfd->dma->ov_mutex);
 
 	return 0;
 }
@@ -104,23 +109,65 @@ static int mipi_toshiba_lcd_off(struct platform_device *pdev)
 	if (mfd->key != MFD_KEY)
 		return -EINVAL;
 
-	/* change to DSI_CMD_MODE since it needed to
-	 * tx DCS dsiplay off comamnd to toshiba panel
-	 */
-	mipi_dsi_op_mode_config(DSI_CMD_MODE);
-
-	mipi_dsi_cmds_tx(&toshiba_tx_buf, toshiba_display_off_cmds,
+	mutex_lock(&mfd->dma->ov_mutex);
+	mipi_dsi_cmds_tx(mfd, &toshiba_tx_buf, toshiba_display_off_cmds,
 			ARRAY_SIZE(toshiba_display_off_cmds));
+	mutex_unlock(&mfd->dma->ov_mutex);
 
 	return 0;
 }
 
-static int __init mipi_toshiba_lcd_probe(struct platform_device *pdev)
+void mipi_bklight_pwm_cfg(void)
+{
+	if (mipi_toshiba_pdata && mipi_toshiba_pdata->dsi_pwm_cfg)
+		mipi_toshiba_pdata->dsi_pwm_cfg();
+}
+
+static void mipi_toshiba_set_backlight(struct msm_fb_data_type *mfd)
+{
+	int ret;
+	static int bklight_pwm_cfg;
+
+	if (bklight_pwm_cfg == 0) {
+		mipi_bklight_pwm_cfg();
+		bklight_pwm_cfg++;
+	}
+
+	if (bl_lpm) {
+		ret = pwm_config(bl_lpm, MIPI_TOSHIBA_PWM_DUTY_LEVEL *
+			mfd->bl_level, MIPI_TOSHIBA_PWM_PERIOD_USEC);
+		if (ret) {
+			pr_err("pwm_config on lpm failed %d\n", ret);
+			return;
+		}
+		if (mfd->bl_level) {
+			ret = pwm_enable(bl_lpm);
+			if (ret)
+				pr_err("pwm enable/disable on lpm failed"
+					"for bl %d\n",	mfd->bl_level);
+		} else {
+			pwm_disable(bl_lpm);
+		}
+	}
+}
+
+static int __devinit mipi_toshiba_lcd_probe(struct platform_device *pdev)
 {
 	if (pdev->id == 0) {
 		mipi_toshiba_pdata = pdev->dev.platform_data;
 		return 0;
 	}
+
+	if (mipi_toshiba_pdata != NULL)
+		bl_lpm = pwm_request(mipi_toshiba_pdata->gpio[0],
+			"backlight");
+
+	if (bl_lpm == NULL || IS_ERR(bl_lpm)) {
+		pr_err("%s pwm_request() failed\n", __func__);
+		bl_lpm = NULL;
+	}
+	pr_debug("bl_lpm = %p lpm = %d\n", bl_lpm,
+		mipi_toshiba_pdata->gpio[0]);
 
 	msm_fb_add_device(pdev);
 
@@ -137,6 +184,7 @@ static struct platform_driver this_driver = {
 static struct msm_fb_panel_data toshiba_panel_data = {
 	.on		= mipi_toshiba_lcd_on,
 	.off		= mipi_toshiba_lcd_off,
+	.set_backlight  = mipi_toshiba_set_backlight,
 };
 
 static int ch_used[3];

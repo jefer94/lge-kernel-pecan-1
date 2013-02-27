@@ -65,7 +65,7 @@
 /* LGE_CHANGE_E [hyunhui.park@lge.com] 2010-07-11 */
 
 #ifdef CONFIG_USB_GADGET_LG_MTP_DRIVER
-#include "f_mtp.h"
+#include "f_lgemtp.h"
 #endif//CONFIG_USB_GADGET_LG_MTP_DRIVER
 
 /*
@@ -153,7 +153,7 @@ static u8 hostaddr[ETH_ALEN];
 struct android_dev {
 	struct usb_gadget *gadget;
 	struct usb_composite_dev *cdev;
-
+      
 	int version;
 
 	int adb_enabled;

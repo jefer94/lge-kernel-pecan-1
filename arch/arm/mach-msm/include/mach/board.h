@@ -1,7 +1,7 @@
 /* arch/arm/mach-msm/include/mach/board.h
  *
  * Copyright (C) 2007 Google, Inc.
- * Copyright (c) 2008-2010, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2008-2012, Code Aurora Forum. All rights reserved.
  * Author: Brian Swetland <swetland@google.com>
  *
  * This software is licensed under the terms of the GNU General Public
@@ -214,6 +214,7 @@ enum msm_mdp_hw_revision {
 };
 
 struct msm_panel_common_pdata {
+        uintptr_t hw_revision_addr;
 	int gpio;
 	int (*backlight_level)(int level, int max, int min);
 	int (*pmic_backlight)(int level);
@@ -221,6 +222,14 @@ struct msm_panel_common_pdata {
 	void (*panel_config_gpio)(int);
 	int *gpio_num;
 	int mdp_core_clk_rate;
+        unsigned num_mdp_clk;
+        int *mdp_core_clk_table;
+        int mdp_rev;
+        int (*writeback_offset)(void);
+        u32 ov0_wb_size;  /* overlay0 writeback size */
+	u32 ov1_wb_size;  /* overlay1 writeback size */
+	u32 mem_hid;
+        char cont_splash_enabled;
 };
 
 struct lcdc_platform_data {
@@ -241,10 +250,21 @@ struct mipi_dsi_platform_data {
 	int (*dsi_power_save)(int on);
 };
 
+struct mipi_dsi_panel_platform_data {
+	int fpga_ctrl_mode;
+	int fpga_3d_config_addr;
+	int *gpio;
+	struct mipi_dsi_phy_ctrl *phy_ctrl_settings;
+	void (*dsi_pwm_cfg)(void);
+};
+
+#define PANEL_NAME_MAX_LEN 50
 struct msm_fb_platform_data {
 	int (*detect_client)(const char *name);
 	int mddi_prescan;
 	int (*allow_set_offset)(void);
+        char prim_panel_name[PANEL_NAME_MAX_LEN];
+        char ext_panel_name[PANEL_NAME_MAX_LEN];
 };
 
 struct msm_hdmi_platform_data {

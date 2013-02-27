@@ -37,11 +37,11 @@ static void memset16(void *_ptr, unsigned short val, unsigned count)
 }
 
 /* 565RLE image format: [count(2 bytes), rle(2 bytes)] */
-int load_565rle_image(char *filename)
+int load_565rle_image(char *filename, bool bf_supported)
 {
 	struct fb_info *info;
-	int fd, err = 0;
-	unsigned count, max;
+	int fd, count, err = 0;
+	unsigned max;
 	unsigned short *data, *bits, *ptr;
 
 	info = registered_fb[0];
@@ -57,9 +57,8 @@ int load_565rle_image(char *filename)
 			__func__, filename);
 		return -ENOENT;
 	}
-	count = (unsigned)sys_lseek(fd, (off_t)0, 2);
-	if (count == 0) {
-		sys_close(fd);
+	count = sys_lseek(fd, (off_t)0, 2);
+	if (count <= 0) {
 		err = -EIO;
 		goto err_logo_close_file;
 	}
@@ -70,14 +69,14 @@ int load_565rle_image(char *filename)
 		err = -ENOMEM;
 		goto err_logo_close_file;
 	}
-	if ((unsigned)sys_read(fd, (char *)data, count) != count) {
+	if (sys_read(fd, (char *)data, count) != count) {
 		err = -EIO;
 		goto err_logo_free_data;
 	}
 
 	max = fb_width(info) * fb_height(info);
 	ptr = data;
-        if (info->node == 1 || info->node == 2) {
+        if (bf_supported && (info->node == 1 || info->node == 2)) {
 		err = -EPERM;
 		pr_err("%s:%d no info->creen_base on fb%d!\n",
 		       __func__, __LINE__, info->node);

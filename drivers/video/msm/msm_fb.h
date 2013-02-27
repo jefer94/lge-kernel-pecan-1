@@ -1,4 +1,4 @@
-/* Copyright (c) 2008-2010, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2008-2012, Code Aurora Forum. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -49,12 +49,18 @@
 #include <linux/spinlock.h>
 #include <linux/workqueue.h>
 #include <linux/hrtimer.h>
+#include <linux/wakelock.h>
 
 #include <linux/fb.h>
+#include <linux/list.h>
+#include <linux/types.h>
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 #include <linux/earlysuspend.h>
 #endif
+
+/*  Idle wakelock to prevent PC between wake up and Vsync */
+extern struct wake_lock mdp_idle_wakelock;
 
 #include "msm_fb_panel.h"
 #include "mdp.h"
@@ -68,6 +74,17 @@ struct disp_info_type_suspend {
 	boolean sw_refreshing_enable;
 	boolean panel_power_on;
 };
+
+struct msmfb_writeback_data_list {
+	struct list_head registered_entry;
+	struct list_head active_entry;
+	void *addr;
+	struct file *pmem_file;
+	struct msmfb_data buf_info;
+	struct msmfb_img img;
+	int state;
+};
+
 
 struct msm_fb_data_type {
 	__u32 key;
@@ -126,6 +143,7 @@ struct msm_fb_data_type {
 	__u32 channel_irq;
 
 	struct mdp_dma_data *dma;
+	struct device_attribute dev_attr;
 	void (*dma_fnc) (struct msm_fb_data_type *mfd);
 	int (*cursor_update) (struct fb_info *info,
 			      struct fb_cursor *cursor);
@@ -133,6 +151,9 @@ struct msm_fb_data_type {
 			      struct fb_cmap *cmap);
 	int (*do_histogram) (struct fb_info *info,
 			      struct mdp_histogram *hist);
+	void (*vsync_ctrl) (int enable);
+	void (*vsync_init) (int cndx);
+	void *vsync_show;
 	void *cursor_buf;
 	void *cursor_buf_phys;
 
@@ -155,20 +176,53 @@ struct msm_fb_data_type {
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	struct early_suspend early_suspend;
+#ifdef CONFIG_FB_MSM_MDDI
 	struct early_suspend mddi_early_suspend;
 	struct early_suspend mddi_ext_early_suspend;
 #endif
+#endif
 	u32 mdp_fb_page_protection;
+
+	struct clk *ebi1_clk;
+	boolean dma_update_flag;
+	struct timer_list msmfb_no_update_notify_timer;
+	struct completion msmfb_update_notify;
+	struct completion msmfb_no_update_notify;
+        struct mutex writeback_mutex;
+	struct mutex unregister_mutex;
+	struct list_head writeback_busy_queue;
+	struct list_head writeback_free_queue;
+	struct list_head writeback_register_queue;
+        struct ion_client *client;
+        wait_queue_head_t wait_q;
+	struct ion_client *iclient;
+	struct mdp_buf_type *ov0_wb_buf;
+	struct mdp_buf_type *ov1_wb_buf;
+	u32 ov_start;
+	u32 mem_hid;
+        u32 mdp_rev;
+	u32 use_ov0_blt, ov0_blt_state;
+	u32 use_ov1_blt, ov1_blt_state;
+	u32 writeback_state;
+	int cont_splash_done;
+	int vsync_sysfs_created;
 };
 
 struct dentry *msm_fb_get_debugfs_root(void);
 void msm_fb_debugfs_file_create(struct dentry *root, const char *name,
 				u32 *var);
-void msm_fb_set_backlight(struct msm_fb_data_type *mfd, __u32 bkl_lvl,
-				u32 save);
+void msm_fb_set_backlight(struct msm_fb_data_type *mfd, __u32 bkl_lvl);
 
-void msm_fb_add_device(struct platform_device *pdev);
-
+struct platform_device *msm_fb_add_device(struct platform_device *pdev);
+struct fb_info *msm_fb_get_writeback_fb(void);
+int msm_fb_writeback_init(struct fb_info *info);
+int msm_fb_writeback_start(struct fb_info *info);
+int msm_fb_writeback_queue_buffer(struct fb_info *info,
+		struct msmfb_data *data);
+int msm_fb_writeback_dequeue_buffer(struct fb_info *info,
+		struct msmfb_data *data);
+int msm_fb_writeback_stop(struct fb_info *info);
+int msm_fb_writeback_terminate(struct fb_info *info);
 int msm_fb_detect_client(const char *name);
 int calc_fb_offset(struct msm_fb_data_type *mfd, struct fb_info *fbi, int bpp);
 
@@ -176,9 +230,12 @@ int calc_fb_offset(struct msm_fb_data_type *mfd, struct fb_info *fbi, int bpp);
 void msm_fb_config_backlight(struct msm_fb_data_type *mfd);
 #endif
 
-void fill_black_screen(void);
-void unfill_black_screen(void);
 int msm_fb_check_frame_rate(struct msm_fb_data_type *mfd,
 				struct fb_info *info);
+
+#ifdef CONFIG_FB_MSM_LOGO
+#define INIT_IMAGE_FILE "/initlogo.rle"
+int load_565rle_image(char *filename, bool bf_supported);
+#endif
 
 #endif /* MSM_FB_H */

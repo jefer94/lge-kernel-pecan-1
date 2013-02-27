@@ -59,6 +59,15 @@ uint32_t socinfo_get_platform_type(void);
 uint32_t socinfo_get_platform_version(void);
 int __init socinfo_init(void) __must_check;
 
+/*
+ * These functions return the baseband version and the model name, which
+ * is derived from the baseband version.  They MUST NOT be called before
+ * socinfo is initialized.  The returned strings are guaranteed to be
+ * valid and NULL terminated.
+ */
+const char *socinfo_get_baseband(void);
+const char *socinfo_get_model(void);
+
 static inline int cpu_is_msm7x01(void)
 {
 	enum msm_cpu cpu = socinfo_get_msm_cpu();
