@@ -1,6 +1,6 @@
 obj-y += io.o dma.o memory.o
 obj-y += clock.o
-obj-y += modem_notifier.o
+obj-y += modem_notifier.o subsystem_map.o
 obj-$(CONFIG_CPU_FREQ_MSM) += cpufreq.o
 obj-$(CONFIG_DEBUG_FS) += nohlt.o clock-debug.o
 
@@ -140,6 +140,8 @@ obj-$(CONFIG_MSM_NPA_REMOTE) += npa_remote.o
 obj-$(CONFIG_MSM_NPA_REMOTE_ONCRPC) += npa_remote_rpc_client.o
 obj-$(CONFIG_MACH_LGE) += lge/
 obj-$(CONFIG_ARCH_MSM7X30) += spm.o
+
+obj-$(CONFIG_MSM_IOMMU)		+= iommu.o iommu_dev.o devices-iommu.o iommu_domains.o
 
 obj-$(CONFIG_SMMU)		+= smmu_driver.o smmu_driver_enum.o
 obj-$(CONFIG_SMMU_8X60)		+= board-msm8x60-smmu.o
