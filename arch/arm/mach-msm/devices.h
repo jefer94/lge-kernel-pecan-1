@@ -110,4 +110,6 @@ extern struct platform_device msm_device_touchscreen;
 
 extern struct platform_device ion_dev;
 
+extern struct platform_device msm8960_msm_gov_device;
+
 #endif
