@@ -2799,8 +2799,6 @@ static int msmfb_overlay_play_enable(struct fb_info *info, unsigned long *argp)
 	return 0;
 }
 
-
-#ifdef CONFIG_FB_MSM_OVERLAY_WRITEBACK
 static int msmfb_overlay_blt(struct fb_info *info, unsigned long *argp)
 {
 	int     ret;
@@ -2832,16 +2830,6 @@ static int msmfb_overlay_blt_off(struct fb_info *info, unsigned long *argp)
 
 	return ret;
 }
-#else
-static int msmfb_overlay_blt(struct fb_info *info, unsigned long *argp)
-{
-	return 0;
-}
-static int msmfb_overlay_blt_off(struct fb_info *info, unsigned long *argp)
-{
-	return 0;
-}
-#endif
 
 static int msmfb_overlay_3d_sbys(struct fb_info *info, unsigned long *argp)
 {
