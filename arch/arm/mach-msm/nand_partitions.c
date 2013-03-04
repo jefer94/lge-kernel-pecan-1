@@ -47,11 +47,18 @@ struct msm_ptbl_entry {
 };
 
 #ifdef CONFIG_MACH_LGE
+#if defined(CONFIG_MACH_MSM7X27_PECAN) || defined(CONFIG_MACH_MSM7X27_HAZEL)
+/* increase max for pecan and hazel
+ * hyunhui.park@lge.com 2010-06-15
+ */
+#define MSM_MAX_PARTITIONS 11
 //[LGE_UPDATE_S] DMS_SYSTEM hyunwook.choo 2011-06-09
+#elif defined(CONFIG_MACH_MSM7X27_THUNDERG) || defined(CONFIG_MACH_MSM7X27_GELATO) || defined(CONFIG_MACH_MSM7X27_MUSCAT) || defined(CONFIG_MACH_MSM7X27_UNIVA)
 #define MSM_MAX_PARTITIONS 12
 //[LGE_UPDATE_E] DMS_SYSTEM hyunwook.choo 
 #else /* original */
 #define MSM_MAX_PARTITIONS 10
+#endif
 #endif
 
 static struct mtd_partition msm_nand_partitions[MSM_MAX_PARTITIONS];
