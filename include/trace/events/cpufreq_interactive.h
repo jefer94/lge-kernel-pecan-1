@@ -83,27 +83,27 @@ DEFINE_EVENT(loadeval, cpufreq_interactive_notyet,
 );
 
 TRACE_EVENT(cpufreq_interactive_boost,
-	    TP_PROTO(char *s),
-	    TP_ARGS(s),
+	    TP_PROTO(unsigned long freq),
+	    TP_ARGS(freq),
 	    TP_STRUCT__entry(
-		    __field(char *, s)
+		    __field(unsigned long, freq)
 	    ),
 	    TP_fast_assign(
-		    __entry->s = s;
+		    __entry->freq = freq;
 	    ),
-	    TP_printk("%s", __entry->s)
+	    TP_printk("freq=%lu", __entry->freq)
 );
 
 TRACE_EVENT(cpufreq_interactive_unboost,
-	    TP_PROTO(char *s),
-	    TP_ARGS(s),
+	    TP_PROTO(unsigned long freq),
+	    TP_ARGS(freq),
 	    TP_STRUCT__entry(
-		    __field(char *, s)
+		    __field(unsigned long, freq)
 	    ),
 	    TP_fast_assign(
-		    __entry->s = s;
+		    __entry->freq = freq;
 	    ),
-	    TP_printk("%s", __entry->s)
+	    TP_printk("freq=%lu", __entry->freq)
 );
 
 #endif /* _TRACE_CPUFREQ_INTERACTIVE_H */
