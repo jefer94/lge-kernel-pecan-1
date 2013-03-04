@@ -66,12 +66,6 @@ static unsigned long go_maxspeed_load;
 #define DEFAULT_MIN_SAMPLE_TIME 80000;
 static unsigned long min_sample_time;
 
-/*
- * The sample rate of the timer used to increase frequency
- */
-#define DEFAULT_TIMER_RATE 30000;
-static unsigned long timer_rate;
-
 static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
 		unsigned int event);
 
@@ -139,7 +133,7 @@ static void cpufreq_interactive_timer(unsigned long data)
 		cpu_load = 100 * (delta_time - delta_idle) / delta_time;
 
 	delta_idle = (unsigned int) cputime64_sub(now_idle,
-						pcpu->freq_change_time_in_idle);
+						 pcpu->freq_change_time_in_idle);
 	delta_time = (unsigned int) cputime64_sub(pcpu->timer_run_time,
 						  pcpu->freq_change_time);
 
@@ -165,8 +159,8 @@ static void cpufreq_interactive_timer(unsigned long data)
 	if (cpufreq_frequency_table_target(pcpu->policy, pcpu->freq_table,
 					   new_freq, CPUFREQ_RELATION_H,
 					   &index)) {
-		pr_warn_once("timer %d: cpufreq_frequency_table_target error\n",
-			     (int) data);
+//		pr_warn_once("timer %d: cpufreq_frequency_table_target error\n",
+//			     (int) data);
 		goto rearm;
 	}
 
@@ -180,8 +174,8 @@ static void cpufreq_interactive_timer(unsigned long data)
 	 * minimum sample time.
 	 */
 	if (new_freq < pcpu->target_freq) {
-		if (cputime64_sub(pcpu->timer_run_time, pcpu->freq_change_time)
-		    < min_sample_time)
+		if (cputime64_sub(pcpu->timer_run_time, pcpu->freq_change_time) <
+		    min_sample_time)
 			goto rearm;
 	}
 
@@ -225,8 +219,7 @@ rearm:
 
 		pcpu->time_in_idle = get_cpu_idle_time_us(
 			data, &pcpu->idle_exit_time);
-		mod_timer(&pcpu->cpu_timer,
-			  jiffies + usecs_to_jiffies(timer_rate));
+		mod_timer(&pcpu->cpu_timer, jiffies + 2);
 	}
 
 exit:
@@ -239,8 +232,9 @@ static void cpufreq_interactive_idle_start(void)
 		&per_cpu(cpuinfo, smp_processor_id());
 	int pending;
 
-	if (!pcpu->governor_enabled)
+	if (!pcpu->governor_enabled) {
 		return;
+	}
 
 	pcpu->idling = 1;
 	smp_wmb();
@@ -260,8 +254,7 @@ static void cpufreq_interactive_idle_start(void)
 			pcpu->time_in_idle = get_cpu_idle_time_us(
 				smp_processor_id(), &pcpu->idle_exit_time);
 			pcpu->timer_idlecancel = 0;
-			mod_timer(&pcpu->cpu_timer,
-				  jiffies + usecs_to_jiffies(timer_rate));
+			mod_timer(&pcpu->cpu_timer, jiffies + 2);
 		}
 #endif
 	} else {
@@ -311,8 +304,7 @@ static void cpufreq_interactive_idle_end(void)
 			get_cpu_idle_time_us(smp_processor_id(),
 					     &pcpu->idle_exit_time);
 		pcpu->timer_idlecancel = 0;
-		mod_timer(&pcpu->cpu_timer,
-			  jiffies + usecs_to_jiffies(timer_rate));
+		mod_timer(&pcpu->cpu_timer, jiffies + 2);
 	}
 
 }
@@ -402,14 +394,7 @@ static ssize_t show_go_maxspeed_load(struct kobject *kobj,
 static ssize_t store_go_maxspeed_load(struct kobject *kobj,
 			struct attribute *attr, const char *buf, size_t count)
 {
-	int ret;
-	unsigned long val;
-
-	ret = strict_strtoul(buf, 0, &val);
-	if (ret < 0)
-		return ret;
-	go_maxspeed_load = val;
-	return count;
+	return strict_strtoul(buf, 0, &go_maxspeed_load);
 }
 
 static struct global_attr go_maxspeed_load_attr = __ATTR(go_maxspeed_load, 0644,
@@ -424,45 +409,15 @@ static ssize_t show_min_sample_time(struct kobject *kobj,
 static ssize_t store_min_sample_time(struct kobject *kobj,
 			struct attribute *attr, const char *buf, size_t count)
 {
-	int ret;
-	unsigned long val;
-
-	ret = strict_strtoul(buf, 0, &val);
-	if (ret < 0)
-		return ret;
-	min_sample_time = val;
-	return count;
+	return strict_strtoul(buf, 0, &min_sample_time);
 }
 
 static struct global_attr min_sample_time_attr = __ATTR(min_sample_time, 0644,
 		show_min_sample_time, store_min_sample_time);
 
-static ssize_t show_timer_rate(struct kobject *kobj,
-			struct attribute *attr, char *buf)
-{
-	return sprintf(buf, "%lu\n", timer_rate);
-}
-
-static ssize_t store_timer_rate(struct kobject *kobj,
-			struct attribute *attr, const char *buf, size_t count)
-{
-	int ret;
-	unsigned long val;
-
-	ret = strict_strtoul(buf, 0, &val);
-	if (ret < 0)
-		return ret;
-	timer_rate = val;
-	return count;
-}
-
-static struct global_attr timer_rate_attr = __ATTR(timer_rate, 0644,
-		show_timer_rate, store_timer_rate);
-
 static struct attribute *interactive_attributes[] = {
 	&go_maxspeed_load_attr.attr,
 	&min_sample_time_attr.attr,
-	&timer_rate_attr.attr,
 	NULL,
 };
 
@@ -578,7 +533,6 @@ static int __init cpufreq_interactive_init(void)
 
 	go_maxspeed_load = DEFAULT_GO_MAXSPEED_LOAD;
 	min_sample_time = DEFAULT_MIN_SAMPLE_TIME;
-	timer_rate = DEFAULT_TIMER_RATE;
 
 	/* Initalize per-cpu timers */
 	for_each_possible_cpu(i) {
@@ -598,9 +552,9 @@ static int __init cpufreq_interactive_init(void)
 
 	/* No rescuer thread, bind to CPU queuing the work for possibly
 	   warm cache (probably doesn't matter much). */
-	down_wq = alloc_workqueue("knteractive_down", 0, 1);
+//	down_wq = alloc_workqueue("knteractive_down", 0, 1);
 
-	if (!down_wq)
+	if (! down_wq)
 		goto err_freeuptask;
 
 	INIT_WORK(&freq_scale_down_work,
