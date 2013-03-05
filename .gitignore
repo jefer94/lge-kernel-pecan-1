@@ -29,6 +29,8 @@ modules.builtin
 *.bz2
 *.lzma
 *.lzo
+*.xz
+*.xzkern
 *.patch
 *.gcno
 *.rej
@@ -45,6 +47,7 @@ modules.builtin
 /System.map
 /Module.markers
 /Module.symvers
+/modules
 
 #
 # git files that we don't want to ignore even it they are dot-files
@@ -58,6 +61,21 @@ modules.builtin
 include/config
 include/linux/version.h
 include/generated
+usr/gen_init_cpio
+usr/initramfs_data.cpio
+arch/arm/kernel/vmlinux.lds
+scripts/mod/modpost
+scripts/basic/docproc
+scripts/basic/fixdep
+scripts/basic/hash
+scripts/bin2c
+scripts/conmakehash
+scripts/kconfig/conf
+scripts/kconfig/lex.zconf.c
+scripts/kconfig/zconf.hash.c
+scripts/kconfig/zconf.tab.c
+scripts/mod/elfconfig.h
+scripts/mod/mk_elfconfig
 
 # stgit generated dirs
 patches-*
@@ -84,3 +102,5 @@ GTAGS
 
 arch/arm/boot/compressed/.
 arch/arm/boot/compressed/vmlinux
+
+.DS_Store
