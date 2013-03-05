@@ -27,7 +27,7 @@
 #ifdef CONFIG_USB_FUNCTION
 #include <linux/usb/mass_storage_function.h>
 #endif
-#ifdef CONFIG_USB_ANDROID
+#ifdef CONFIG_USB_G_ANDROID
 #include <linux/usb/android_composite.h>
 #endif
 
@@ -42,7 +42,7 @@
 
 /* board-specific usb data definitions */
 /* QCT originals are in device_lge.c, not here */
-#ifdef CONFIG_USB_ANDROID
+#ifdef CONFIG_USB_G_ANDROID
 
 /* LGE_CHANGE
  * Currently, LG Android host driver has 2 function orders as following;
@@ -267,7 +267,7 @@ struct android_usb_platform_data android_usb_pdata = {
 	.vendor_id  = 0x1004,
 	.product_id = 0x618E,
 	.version    = 0x0100,
-	.product_name       = "LGE USB Device",
+	.product_name       = "LGE Android Phone",
 	.manufacturer_name  = "LG Electronics Inc.",
 	.num_products = ARRAY_SIZE(usb_products),
 	.products = usb_products,
@@ -278,7 +278,27 @@ struct android_usb_platform_data android_usb_pdata = {
 };
 
 
-#endif /* CONFIG_USB_ANDROID */
+static int __init board_serialno_setup(char *serialno)
+{
+	int i;
+	char *src = serialno;
+
+	/* create a fake MAC address from our serial number.
+	 * first byte is 0x02 to signify locally administered.
+	 */
+	rndis_pdata.ethaddr[0] = 0x02;
+	for (i = 0; *src; i++) {
+		/* XOR the USB serial across the remaining bytes */
+		rndis_pdata.ethaddr[i % (ETH_ALEN - 1) + 1] ^= *src++;
+	}
+
+	android_usb_pdata.serial_number = serialno;
+	return 1;
+}
+__setup("androidboot.serialno=", board_serialno_setup);
+
+
+#endif /* CONFIG_USB_G_ANDROID */
 
 static void __init msm7x2x_init(void)
 {
