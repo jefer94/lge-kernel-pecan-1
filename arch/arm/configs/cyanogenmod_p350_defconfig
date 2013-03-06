@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.35.10
-# Wed Mar  6 16:51:12 2013
+# Thu Mar  7 00:21:03 2013
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -517,6 +517,10 @@ CONFIG_CMDLINE="init=/sbin/init root=/dev/ram rw initrd=0x11000000,16M console=t
 
 #
 # CPU Power Management
+#
+
+#
+# CPU Frequency scaling
 #
 CONFIG_CPU_FREQ=y
 CONFIG_CPU_FREQ_TABLE=y
@@ -1053,6 +1057,7 @@ CONFIG_BLK_DEV_RAM_SIZE=16384
 # CONFIG_CDROM_PKTCDVD is not set
 # CONFIG_ATA_OVER_ETH is not set
 # CONFIG_MG_DISK is not set
+# CONFIG_BLK_DEV_RBD is not set
 CONFIG_MISC_DEVICES=y
 # CONFIG_AD525X_DPOT is not set
 CONFIG_ANDROID_PMEM=y
