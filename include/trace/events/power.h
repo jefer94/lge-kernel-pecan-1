@@ -110,7 +110,6 @@ DEFINE_EVENT(cpu, cpu_frequency,
 
         TP_ARGS(frequency, cpu_id)
 );
-
 #endif /* _TRACE_POWER_H */
 
 /* This part must be outside protection */
