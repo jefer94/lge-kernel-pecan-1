@@ -1,6 +1,6 @@
 obj-y += io.o dma.o memory.o
 obj-y += clock.o clock-voter.o
-obj-y += modem_notifier.o
+obj-y += modem_notifier.o subsystem_map.o
 obj-$(CONFIG_CPU_FREQ_MSM) += cpufreq.o
 obj-$(CONFIG_DEBUG_FS) += nohlt.o clock-debug.o
 
@@ -124,6 +124,11 @@ obj-$(CONFIG_ARCH_MSM8X60) += subsystem-fatal-8x60.o
 obj-$(CONFIG_ARCH_MSM8X60) += saw-regulator.o
 obj-$(CONFIG_ARCH_MSM8X60) += rpm-regulator.o
 obj-$(CONFIG_ARCH_MSM8X60) += footswitch-8x60.o
+
+obj-$(CONFIG_MSM_IOMMU)	+= iommu.o iommu_dev.o devices-iommu.o iommu_domains.o
+ifdef CONFIG_OF
+obj-$(CONFIG_MSM_IOMMU)	+= iommu-v2.o iommu_dev-v2.o iommu_pagetable.o
+endif
 
 ifdef CONFIG_ARCH_MSM8X60
 	obj-$(CONFIG_CPU_IDLE) += cpuidle.o
