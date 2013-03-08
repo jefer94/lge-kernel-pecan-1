@@ -231,7 +231,7 @@ void __init msm_add_fb_device(void)
 static struct resource kgsl_3d0_resources[] = {
 	{
 		.name  = KGSL_3D0_REG_MEMORY,
-		.start = 0xA0000000, /* 3D GRP address */
+		.start = 0xA0000000,
 		.end = 0xA001ffff,
 		.flags = IORESOURCE_MEM,
 	},
@@ -244,38 +244,24 @@ static struct resource kgsl_3d0_resources[] = {
 };
 
 static struct kgsl_device_platform_data kgsl_3d0_pdata = {
-	.pwr_data = {
+	/* bus_freq has been set to 160000 for power savings.
+	* OEMs may modify the value at their discretion for performance
+	* The appropriate maximum replacement for 160000 is:
+	* msm7x2x_clock_data.max_axi_khz
+	*/
 	.pwrlevel = {
-		   	{
-			.gpu_freq = 245760000,
-			.bus_freq = 192000000,
-		},
 		{
-			.gpu_freq = 192000000,
-			.bus_freq = 153000000,
+			.gpu_freq = 0,
+			.bus_freq = 160000000,
 		},
-		{
-			.gpu_freq = 192000000,
-			.bus_freq = 0,
-                },
 	},
 	.init_level = 0,
-	.num_levels = 3,
+	.num_levels = 1,
 	.set_grp_async = NULL,
-	.idle_timeout = HZ/20,
-	.nap_allowed = true,
-	},
-        .clk = {
-	.name = {
-	.clk = "grp_clk",
-	.pclk = "grp_pclk",
-	},
-     },
-	.imem_clk_name = {
-	.clk = "imem_clk",
-	.pclk = NULL,
-	},
-	};
+	.idle_timeout = HZ,
+	.strtstp_sleepwake = true,
+	.clk_map = KGSL_CLK_CORE | KGSL_CLK_IFACE | KGSL_CLK_MEM,
+};
 
 static struct platform_device msm_kgsl_3d0 = {
 	.name = "kgsl-3d0",
@@ -284,7 +270,7 @@ static struct platform_device msm_kgsl_3d0 = {
 	.resource = kgsl_3d0_resources,
 	.dev = {
 		.platform_data = &kgsl_3d0_pdata,
-	}
+	},
 };
 
 void __init msm_add_kgsl_device(void) 
