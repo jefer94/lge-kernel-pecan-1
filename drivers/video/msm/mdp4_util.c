@@ -243,6 +243,7 @@ void mdp4_fetch_cfg(uint32 core_clk)
 void mdp4_hw_init(void)
 {
 	ulong bits;
+	uint32 clk_rate;
 
 	/* MDP cmd block enable */
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
@@ -295,12 +296,6 @@ void mdp4_hw_init(void)
 	bits =  mdp_intr_mask;
 	outpdw(MDP_BASE + 0x0050, bits);/* enable specififed interrupts */
 
-	/* histogram */
-	MDP_OUTP(MDP_BASE + 0x95010, 1);	/* auto clear HIST */
-
-	/* enable histogram interrupts */
-	outpdw(MDP_BASE + 0x9501c, INTR_HIST_DONE);
-
 	/* For the max read pending cmd config below, if the MDP clock     */
 	/* is less than the AXI clock, then we must use 3 pending          */
 	/* pending requests.  Otherwise, we should use 8 pending requests. */
@@ -315,13 +310,16 @@ void mdp4_hw_init(void)
 	mdp4_overlay_cfg(MDP4_MIXER1, OVERLAY_MODE_BLT, 0, 0);
 #endif
 
-	/* MDP cmd block disable */
-	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
+	clk_rate = mdp_get_core_clk();
+	mdp4_fetch_cfg(clk_rate);
 
 	/* Mark hardware as initialized. Only revisions > v2.1 have a register
 	 * for tracking core reset status. */
 	if (mdp_hw_revision > MDP4_REVISION_V2_1)
 		outpdw(MDP_BASE + 0x003c, 1);
+
+	/* MDP cmd block disable */
+	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
 }
 
 
@@ -359,6 +357,9 @@ irqreturn_t mdp4_isr(int irq, void *ptr)
 {
 	uint32 isr, mask, panel;
 	struct mdp_dma_data *dma;
+	struct mdp_hist_mgmt *mgmt = NULL;
+	char *base_addr;
+	int i, ret;
 
 	mdp_is_in_isr = TRUE;
 
@@ -380,12 +381,16 @@ irqreturn_t mdp4_isr(int irq, void *ptr)
 		/* When underun occurs mdp clear the histogram registers
 		that are set before in hw_init so restore them back so
 		that histogram works.*/
-		MDP_OUTP(MDP_BASE + 0x95010, 1);
-		outpdw(MDP_BASE + 0x9501c, INTR_HIST_DONE);
-		if (mdp_is_hist_start == TRUE) {
-			MDP_OUTP(MDP_BASE + 0x95004,
-					mdp_hist_frame_cnt);
-			MDP_OUTP(MDP_BASE + 0x95000, 1);
+		for (i = 0; i < MDP_HIST_MGMT_MAX; i++) {
+			mgmt = mdp_hist_mgmt_array[i];
+			if (!mgmt)
+				continue;
+			base_addr = MDP_BASE + mgmt->base;
+			MDP_OUTP(base_addr + 0x010, 1);
+			outpdw(base_addr + 0x01c, INTR_HIST_DONE |
+						INTR_HIST_RESET_SEQ_DONE);
+			mgmt->mdp_is_hist_valid = FALSE;
+			__mdp_histogram_reset(mgmt);
 		}
 	}
 
@@ -399,6 +404,7 @@ irqreturn_t mdp4_isr(int irq, void *ptr)
 
 	panel = mdp4_overlay_panel_list();
 	if (isr & INTR_PRIMARY_VSYNC) {
+		mdp4_stat.intr_vsync_p++;
 		dma = &dma2_data;
 		spin_lock(&mdp_spin_lock);
 		mdp_intr_mask &= ~INTR_PRIMARY_VSYNC;
@@ -414,6 +420,7 @@ irqreturn_t mdp4_isr(int irq, void *ptr)
 	}
 #ifdef CONFIG_FB_MSM_DTV
 	if (isr & INTR_EXTERNAL_VSYNC) {
+		mdp4_stat.intr_vsync_e++;
 		dma = &dma_e_data;
 		spin_lock(&mdp_spin_lock);
 		mdp_intr_mask &= ~INTR_EXTERNAL_VSYNC;
@@ -470,11 +477,21 @@ irqreturn_t mdp4_isr(int irq, void *ptr)
 		if (panel & MDP4_PANEL_ATV)
 			mdp4_overlay1_done_atv();
 #endif
+	}
 #if defined(CONFIG_FB_MSM_WRITEBACK_MSM_PANEL)
+	if (isr & INTR_OVERLAY2_DONE) {
+		mdp4_stat.intr_overlay2++;
+		/* disable DTV interrupt */
+		dma = &dma_wb_data;
+		spin_lock(&mdp_spin_lock);
+		mdp_intr_mask &= ~INTR_OVERLAY2_DONE;
+		outp32(MDP_INTR_ENABLE, mdp_intr_mask);
+		dma->waiting = FALSE;
+		spin_unlock(&mdp_spin_lock);
 		if (panel & MDP4_PANEL_WRITEBACK)
 			mdp4_overlay1_done_writeback(dma);
-#endif
 	}
+#endif
 #endif	/* OVERLAY */
 
 	if (isr & INTR_DMA_P_DONE) {
@@ -497,14 +514,14 @@ irqreturn_t mdp4_isr(int irq, void *ptr)
 			mdp_intr_mask &= ~INTR_DMA_P_DONE;
 			outp32(MDP_INTR_ENABLE, mdp_intr_mask);
 			dma->waiting = FALSE;
-			mdp4_dma_p_done_dsi_video(dma);
+			mdp4_dma_p_done_dsi_video();
 			spin_unlock(&mdp_spin_lock);
 		} else if (panel & MDP4_PANEL_DSI_CMD) {
 			mdp4_dma_p_done_dsi(dma);
 		}
 #else
 		else { /* MDDI */
-			mdp4_dma_p_done_mddi(dma);
+			mdp4_dma_p_done_mddi();
 			mdp_pipe_ctrl(MDP_DMA2_BLOCK,
 				MDP_BLOCK_POWER_OFF, TRUE);
 			complete(&dma->comp);
@@ -547,22 +564,28 @@ irqreturn_t mdp4_isr(int irq, void *ptr)
 		spin_unlock(&mdp_spin_lock);
 	}
 	if (isr & INTR_DMA_P_HISTOGRAM) {
-		isr = inpdw(MDP_DMA_P_HIST_INTR_STATUS);
-		mask = inpdw(MDP_DMA_P_HIST_INTR_ENABLE);
-		outpdw(MDP_DMA_P_HIST_INTR_CLEAR, isr);
-		mb();
-		isr &= mask;
-		if (isr & INTR_HIST_DONE) {
-			if (waitqueue_active(&(mdp_hist_comp.wait))) {
-				complete(&mdp_hist_comp);
-			} else {
-				if (mdp_is_hist_start == TRUE) {
-					MDP_OUTP(MDP_BASE + 0x95004,
-							mdp_hist_frame_cnt);
-					MDP_OUTP(MDP_BASE + 0x95000, 1);
-				}
-			}
-		}
+		mdp4_stat.intr_histogram++;
+		ret = mdp_histogram_block2mgmt(MDP_BLOCK_DMA_P, &mgmt);
+		if (!ret)
+			mdp_histogram_handle_isr(mgmt);
+	}
+	if (isr & INTR_DMA_S_HISTOGRAM) {
+		mdp4_stat.intr_histogram++;
+		ret = mdp_histogram_block2mgmt(MDP_BLOCK_DMA_S, &mgmt);
+		if (!ret)
+			mdp_histogram_handle_isr(mgmt);
+	}
+	if (isr & INTR_VG1_HISTOGRAM) {
+		mdp4_stat.intr_histogram++;
+		ret = mdp_histogram_block2mgmt(MDP_BLOCK_VG_1, &mgmt);
+		if (!ret)
+			mdp_histogram_handle_isr(mgmt);
+	}
+	if (isr & INTR_VG2_HISTOGRAM) {
+		mdp4_stat.intr_histogram++;
+		ret = mdp_histogram_block2mgmt(MDP_BLOCK_VG_2, &mgmt);
+		if (!ret)
+			mdp_histogram_handle_isr(mgmt);
 	}
 
 out:
@@ -2545,9 +2568,10 @@ u32 mdp4_allocate_writeback_buf(struct msm_fb_data_type *mfd, u32 mix_num)
 	}
 
 	if (!IS_ERR_OR_NULL(mfd->iclient)) {
-		pr_info("%s:%d ion based allocation\n", __func__, __LINE__);
-		buf->ihdl = ion_alloc(mfd->iclient, buf->size, 4,
-			(1 << mfd->mem_hid));
+		pr_info("%s:%d ion based allocation mfd->mem_hid 0x%x\n",
+			__func__, __LINE__, mfd->mem_hid);
+		buf->ihdl = ion_alloc(mfd->iclient, buf->size, SZ_4K,
+			mfd->mem_hid);
 		if (!IS_ERR_OR_NULL(buf->ihdl)) {
 			if (ion_phys(mfd->iclient, buf->ihdl,
 				&addr, &len)) {
@@ -2748,11 +2772,13 @@ static int mdp4_read_pcc_regs(uint32_t offset,
 
 #define MDP_PCC_OFFSET 0xA000
 #define MDP_DMA_GC_OFFSET 0x8800
-#define MDP_LM_GC_OFFSET 0x4800
+#define MDP_LM_0_GC_OFFSET 0x4800
+#define MDP_LM_1_GC_OFFSET 0x4880
+
 
 #define MDP_DMA_P_OP_MODE_OFFSET 0x70
 #define MDP_DMA_S_OP_MODE_OFFSET 0x28
-#define MDP_LM_OP_MODE_OFFSET 0x14
+#define MDP_LM_OP_MODE_OFFSET 0x10
 
 #define DMA_PCC_R2_OFFSET 0x100
 
@@ -2986,7 +3012,11 @@ int mdp4_argc_cfg(struct mdp_pgc_lut_data *pgc_ptr)
 
 	case MDP_BLOCK_OVERLAY_0:
 	case MDP_BLOCK_OVERLAY_1:
-		offset = (uint32_t *)(blockbase + MDP_LM_GC_OFFSET);
+		offset = (uint32_t *)(blockbase +
+				(MDP_BLOCK_OVERLAY_0 == pgc_ptr->block ?
+				 MDP_LM_0_GC_OFFSET
+				 : MDP_LM_1_GC_OFFSET));
+
 		pgc_enable_offset = (uint32_t *)(blockbase
 				+ MDP_LM_OP_MODE_OFFSET);
 		lshift_bits = 2;

@@ -1,4 +1,4 @@
-/* Copyright (c) 2010, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2011, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -8,15 +8,14 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
  */
 
-#ifndef MIPI_NOVATEK_BLUE_H
-#define MIPI_NOVATEK_BLUE_H
+#ifndef MIPI_RENESAS_H
+#define MIPI_RENESAS_H
 
-#define NOVATEK_TWO_LANE
+#define RENESAS_FWVGA_TWO_LANE
 
-int mipi_novatek_device_register(struct msm_panel_info *pinfo,
+int mipi_renesas_device_register(struct msm_panel_info *pinfo,
 					u32 channel, u32 panel);
 
-#endif  /* MIPI_NOVATEK_BLUE_H */
+#endif  /* MIPI_RENESAS_H */

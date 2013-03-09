@@ -8,11 +8,6 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA.
  */
 
 #include <linux/delay.h>
@@ -161,7 +156,7 @@ static int __devinit samsung_probe(struct platform_device *pdev)
 		bl_pwm1 = NULL;
 	}
 
-	printk(KERN_INFO "samsung_probe: bl_pwm0=%p LPG_chan0=%d "
+	pr_debug("samsung_probe: bl_pwm0=%p LPG_chan0=%d "
 			"bl_pwm1=%p LPG_chan1=%d\n",
 			bl_pwm0, (int)dd->pdata->gpio_num[0],
 			bl_pwm1, (int)dd->pdata->gpio_num[1]

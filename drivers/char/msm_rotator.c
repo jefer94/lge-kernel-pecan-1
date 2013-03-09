@@ -672,6 +672,8 @@ static int get_img(int memory_id, unsigned long *start, unsigned long *len,
 #ifdef CONFIG_ANDROID_PMEM
 	unsigned long vstart;
 #endif
+#include <mach/msm_subsystem_map.h>
+#include <mach/iommu_domains.h>
 
 #ifdef CONFIG_ANDROID_PMEM
 	if (!get_pmem_file(memory_id, start, &vstart, len, pp_file))

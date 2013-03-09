@@ -98,14 +98,11 @@ int mdp4_overlay_writeback_on(struct platform_device *pdev)
 		pipe = writeback_pipe;
 	}
 	ret = panel_next_on(pdev);
-
 	/* MDP_LAYERMIXER_WB_MUX_SEL to use mixer1 axi for mixer2 writeback */
-	if (hdmi_prim_display)
-		data = 0x01;
-	else
-		data = 0x02;
+	data = inpdw(MDP_BASE + 0x100F4);
+	data &= ~0x02; /* clear the mixer1 mux bit */
+	data |= 0x02;
 	outpdw(MDP_BASE + 0x100F4, data);
-
 	MDP_OUTP(MDP_BASE + MDP4_OVERLAYPROC1_BASE + 0x5004,
 		((0x0 & 0xFFF) << 16) | /* 12-bit B */
 			(0x0 & 0xFFF));         /* 12-bit G */
@@ -120,6 +117,7 @@ int mdp4_overlay_writeback_on(struct platform_device *pdev)
 int mdp4_overlay_writeback_off(struct platform_device *pdev)
 {
 	int ret;
+	uint32 data;
 	struct msm_fb_data_type *mfd =
 			(struct msm_fb_data_type *)platform_get_drvdata(pdev);
 	if (mfd && writeback_pipe) {
@@ -131,8 +129,11 @@ int mdp4_overlay_writeback_off(struct platform_device *pdev)
 	}
 	ret = panel_next_off(pdev);
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
-	/* MDP_LAYERMIXER_WB_MUX_SEL to restore to default cfg*/
-	outpdw(MDP_BASE + 0x100F4, 0x0);
+	/* MDP_LAYERMIXER_WB_MUX_SEL to restore
+	 * mixer1 axi for mixer1 writeback */
+	data = inpdw(MDP_BASE + 0x100F4);
+	data &= ~0x02; /* clear the mixer1 mux bit */
+	outpdw(MDP_BASE + 0x100F4, data);
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
 	return ret;
 }
@@ -257,9 +258,7 @@ void mdp4_writeback_kickoff_video(struct msm_fb_data_type *mfd,
 	struct msmfb_writeback_data_list *node = NULL;
 	mutex_lock(&mfd->unregister_mutex);
 	mutex_lock(&mfd->writeback_mutex);
-	if (!list_empty(&mfd->writeback_free_queue)
-		&& mfd->writeback_state != WB_STOPING
-		&& mfd->writeback_state != WB_STOP) {
+	if (!list_empty(&mfd->writeback_free_queue)) {
 		node = list_first_entry(&mfd->writeback_free_queue,
 				struct msmfb_writeback_data_list, active_entry);
 	}
@@ -307,9 +306,7 @@ void mdp4_writeback_overlay(struct msm_fb_data_type *mfd)
 
 	mutex_lock(&mfd->unregister_mutex);
 	mutex_lock(&mfd->writeback_mutex);
-	if (!list_empty(&mfd->writeback_free_queue)
-		&& mfd->writeback_state != WB_STOPING
-		&& mfd->writeback_state != WB_STOP) {
+	if (!list_empty(&mfd->writeback_free_queue)) {
 		node = list_first_entry(&mfd->writeback_free_queue,
 				struct msmfb_writeback_data_list, active_entry);
 	}
