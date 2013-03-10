@@ -14,7 +14,7 @@
 
 obj-$(CONFIG_BCM4329) += wireless.o
 
-obj-$(CONFIG_BRCM_USE_STATIC_BUF) += brcm_static_buf.o
+obj-$(CONFIG_BRCM4329_USE_STATIC_BUF) += brcm_static_buf.o
 
 wireless-objs = \
 	src/dhd/sys/dhd_linux.o \
@@ -52,8 +52,7 @@ EXTRA_CFLAGS = \
 	-DDHD_GPL -DDHD_SCHED\
 	-DBCMLXSDMMC \
 	-DBCMPLATFORM_BUS \
-	-DSDIO_ISR_THREAD \
-	-Wall -Wstrict-prototypes -Werror \
+	-Wall -Wstrict-prototypes \
 	-I$(SRCROOT) \
 	-I$(SRCROOT)/include \
 	-I$(SRCROOT)/shared \
@@ -66,22 +65,12 @@ EXTRA_CFLAGS = \
 	-DSDIO_DEVICE_ID_BROADCOM_4325=0x4c6 \
 	-DSDIO_DEVICE_ID_BROADCOM_4329=0x4329 \
 	-DANDROID_SPECIFIC \
-	-DDONGLEOVERLAYS \
+	-DOEM_ANDROID -DEMBEDDED_PLATFORM \
 	-DMMC_SDIO_ABORT \
-
-#ifneq ($(TARGET_USE_LEGACY_TOOLCHAIN),*)
-ifndef TARGET_USE_LEGACY_TOOLCHAIN
-  # gcc-4.6.1 warns a lot more than previous compilers.
-  # The following is the minimal set of warnings that need to not error out
-  # the build for it to succeed. -Wno-error would also work, but this
-  # explicit list allows them to be fixed in smaller chunks.
-  #
-  # in your build set up, define "TARGET_USE_LEGACY_TOOLCHAIN" as anything
-  # this has been added into jenkins for ics already
-
-  DHDCFLAGS += -Wno-error=unused-but-set-variable
-  DHDCFLAGS += -Wno-error=array-bounds
-endif
+	-DOOB_INTR_ONLY \
+	-DHW_OOB \
+	-DMMC_SDIO_ABORT \
+	-DCUSTOMER_HW3 \
 #-DAP -DAPSTA_PINGTEST \
 
 #	\
@@ -91,11 +80,14 @@ endif
 	-Iinclude/asm/mach-default \
 	-DBCMEMBEDIMAGE="<dongle/rte/wl/builds/4325b0/sdio-g-cdc-reclaim-idsup-wme/rtecdc.h>" \
 
+#   -DCUSTOM_OOB_GPIO_NUM=46
+EXTRA_CFLAGS += -DCUSTOM_OOB_GPIO_NUM=$(CONFIG_BCM4329_GPIO_WL_HOSTWAKEUP)
+
 ifeq ($(CONFIG_BCM4329_DEBUG),y)
 EXTRA_CFLAGS += -DDHD_DEBUG -DSDTEST -DSRCBASE="\"$(SRCROOT)\""
 endif
 
-ifeq ($(CONFIG_BRCM_USE_STATIC_BUF),y)
+ifeq ($(CONFIG_BRCM4329_USE_STATIC_BUF),y)
 EXTRA_CFLAGS += -DDHD_USE_STATIC_BUF
 endif
 
