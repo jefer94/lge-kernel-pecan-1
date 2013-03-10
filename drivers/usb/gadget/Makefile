@@ -67,4 +67,6 @@ obj-$(CONFIG_USB_G_MULTI)	+= g_multi.o
 obj-$(CONFIG_USB_G_NOKIA)	+= g_nokia.o
 obj-$(CONFIG_USB_G_WEBCAM)	+= g_webcam.o
 obj-$(CONFIG_USB_G_ANDROID)	+= g_android.o
+obj-$(CONFIG_USB_ANDROID_RMNET_BAM)	+= f_rmnet.o u_bam.o
+obj-$(CONFIG_USB_ANDROID_RMNET_CTRL_SMD) += f_rmnet.o u_rmnet_ctrl_smd.o
 
