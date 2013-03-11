@@ -336,8 +336,8 @@ static void mdp4_overlay_dtv_alloc_pipe(struct msm_fb_data_type *mfd,
 		mdp4_overlay_rgb_setup(pipe);
 	}
 
-	mdp4_mixer_stage_up(pipe);
 	mdp4_overlay_reg_flush(pipe, 1);
+	mdp4_mixer_stage_up(pipe);
 
 	dtv_pipe = pipe; /* keep it */
 }

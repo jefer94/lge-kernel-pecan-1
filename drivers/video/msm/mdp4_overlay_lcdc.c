@@ -149,8 +149,6 @@ int mdp_lcdc_on(struct platform_device *pdev)
 
 	mdp4_overlay_rgb_setup(pipe);
 
-	mdp4_mixer_stage_up(pipe);
-
 	mdp4_overlayproc_cfg(pipe);
 
 	/*
@@ -233,6 +231,7 @@ int mdp_lcdc_on(struct platform_device *pdev)
 	MDP_OUTP(MDP_BASE + LCDC_BASE + 0x24, active_v_end);
 
 	mdp4_overlay_reg_flush(pipe, 1);
+	mdp4_mixer_stage_up(pipe);
 
 #ifdef CONFIG_MSM_BUS_SCALING
 	mdp_bus_scale_update_request(2);
@@ -541,8 +540,8 @@ void mdp4_lcdc_overlay(struct msm_fb_data_type *mfd)
 	pipe = lcdc_pipe;
 	pipe->srcp0_addr = (uint32) buf;
 	mdp4_overlay_rgb_setup(pipe);
-	mdp4_mixer_stage_up(pipe);
 	mdp4_overlay_reg_flush(pipe, 0);
+        mdp4_mixer_stage_up(pipe);
 	mdp4_overlay_lcdc_vsync_push(mfd, pipe);
 	mutex_unlock(&mfd->dma->ov_mutex);
 }
