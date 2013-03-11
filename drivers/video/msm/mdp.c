@@ -733,6 +733,24 @@ static void vsync_isr_handler(void)
 	vsync_cntrl.vsync_time = ktime_get();
 }
 
+static ssize_t vsync_show_event(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	ssize_t ret = 0;
+
+	if (atomic_read(&vsync_cntrl.suspend) > 0 ||
+		atomic_read(&vsync_cntrl.vsync_resume) == 0)
+		return 0;
+
+	INIT_COMPLETION(vsync_cntrl.vsync_wait);
+
+	wait_for_completion(&vsync_cntrl.vsync_wait);
+	ret = snprintf(buf, PAGE_SIZE, "VSYNC=%llu",
+	ktime_to_ns(vsync_cntrl.vsync_time));
+	buf[strlen(buf) + 1] = '\0';
+	return ret;
+}
+
 /* Returns < 0 on error, 0 on timeout, or > 0 on successful wait */
 
 int mdp_ppp_pipe_wait(void)
@@ -2091,6 +2109,14 @@ static void mdp_suspend_sub(void)
 	mutex_unlock(&mdp_suspend_mutex);
 }
 #endif
+static DEVICE_ATTR(vsync_event, S_IRUGO, vsync_show_event, NULL);
+static struct attribute *vsync_fs_attrs[] = {
+	&dev_attr_vsync_event.attr,
+	NULL,
+};
+static struct attribute_group vsync_fs_attr_group = {
+	.attrs = vsync_fs_attrs,
+};
 
 #if defined(CONFIG_PM) && !defined(CONFIG_HAS_EARLYSUSPEND)
 static int mdp_suspend(struct platform_device *pdev, pm_message_t state)
