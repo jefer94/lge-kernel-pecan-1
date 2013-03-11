@@ -41,9 +41,15 @@
 
 int first_pixel_start_x;
 int first_pixel_start_y;
+static int lcdc_enabled;
 
 static struct mdp4_overlay_pipe *lcdc_pipe;
 static struct completion lcdc_comp;
+
+void mdp4_lcdc_base_swap(struct mdp4_overlay_pipe *pipe)
+{
+	lcdc_pipe = pipe;
+}
 
 int mdp_lcdc_on(struct platform_device *pdev)
 {
@@ -78,6 +84,7 @@ int mdp_lcdc_on(struct platform_device *pdev)
 	int hsync_start_x;
 	int hsync_end_x;
 	uint8 *buf;
+	unsigned int buf_offset;
 	int bpp, ptype;
 	struct fb_info *fbi;
 	struct fb_var_screeninfo *var;
@@ -93,8 +100,6 @@ int mdp_lcdc_on(struct platform_device *pdev)
 	if (mfd->key != MFD_KEY)
 		return -EINVAL;
 
-	mdp4_overlay_ctrl_db_reset();
-
 	fbi = mfd->fbi;
 	var = &fbi->var;
 
@@ -107,7 +112,7 @@ int mdp_lcdc_on(struct platform_device *pdev)
 
 	bpp = fbi->var.bits_per_pixel / 8;
 	buf = (uint8 *) fbi->fix.smem_start;
-	buf += calc_fb_offset(mfd, fbi, bpp);
+	buf_offset = calc_fb_offset(mfd, fbi, bpp);
 
 	if (lcdc_pipe == NULL) {
 		ptype = mdp4_overlay_format2type(mfd->fb_imgType);
@@ -140,7 +145,15 @@ int mdp_lcdc_on(struct platform_device *pdev)
 	pipe->src_w = fbi->var.xres;
 	pipe->src_y = 0;
 	pipe->src_x = 0;
-	pipe->srcp0_addr = (uint32) buf;
+	if (mfd->map_buffer) {
+		pipe->srcp0_addr = (unsigned int)mfd->map_buffer->iova[0] + \
+			buf_offset;
+		pr_debug("start 0x%lx srcp0_addr 0x%x\n", mfd->
+			map_buffer->iova[0], pipe->srcp0_addr);
+	} else {
+		pipe->srcp0_addr = (uint32)(buf + buf_offset);
+	}
+
 	pipe->srcp0_ystride = fbi->fix.line_length;
 	pipe->bpp = bpp;
 
@@ -148,6 +161,8 @@ int mdp_lcdc_on(struct platform_device *pdev)
 	mdp4_overlay_dmap_cfg(mfd, 1);
 
 	mdp4_overlay_rgb_setup(pipe);
+	mdp4_overlay_reg_flush(pipe, 1);
+	mdp4_mixer_stage_up(pipe);
 
 	mdp4_overlayproc_cfg(pipe);
 
@@ -239,11 +254,6 @@ int mdp_lcdc_on(struct platform_device *pdev)
 	mdp_histogram_ctrl_all(TRUE);
 
 	ret = panel_next_on(pdev);
-	if (ret == 0) {
-		/* enable LCDC block */
-		MDP_OUTP(MDP_BASE + LCDC_BASE, 1);
-		mdp_pipe_ctrl(MDP_OVERLAY0_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
-	}
 	/* MDP cmd block disable */
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
 
@@ -261,8 +271,8 @@ int mdp_lcdc_off(struct platform_device *pdev)
 
 	/* MDP cmd block enable */
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
-	mdp4_mixer_pipe_cleanup(lcdc_pipe->mixer_num);
 	MDP_OUTP(MDP_BASE + LCDC_BASE, 0);
+	lcdc_enabled = 0;
 	/* MDP cmd block disable */
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
 	mdp_pipe_ctrl(MDP_OVERLAY0_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
@@ -276,8 +286,20 @@ int mdp_lcdc_off(struct platform_device *pdev)
 	msleep(20);
 
 	/* dis-engage rgb0 from mixer0 */
-	if (lcdc_pipe)
-		mdp4_mixer_stage_down(lcdc_pipe);
+	if (lcdc_pipe) {
+		if (mfd->ref_cnt == 0) {
+			/* adb stop */
+			if (lcdc_pipe->pipe_type == OVERLAY_TYPE_BF)
+				mdp4_overlay_borderfill_stage_down(lcdc_pipe);
+
+			/* lcdc_pipe == rgb1 */
+			mdp4_overlay_unset_mixer(lcdc_pipe->mixer_num);
+			lcdc_pipe = NULL;
+		} else {
+			mdp4_mixer_stage_down(lcdc_pipe);
+			mdp4_iommu_unmap(lcdc_pipe);
+		}
+	}
 
 #ifdef CONFIG_MSM_BUS_SCALING
 	mdp_bus_scale_update_request(0);
@@ -386,6 +408,19 @@ static void mdp4_overlay_lcdc_dma_busy_wait(struct msm_fb_data_type *mfd)
 	pr_debug("%s: done pid=%d\n", __func__, current->pid);
 }
 
+void mdp4_overlay_lcdc_start(void)
+{
+	if (!lcdc_enabled) {
+		/* enable LCDC block */
+		mdp4_iommu_attach();
+		mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
+		MDP_OUTP(MDP_BASE + LCDC_BASE, 1);
+		mdp_pipe_ctrl(MDP_OVERLAY0_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
+		mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
+		lcdc_enabled = 1;
+	}
+}
+
 void mdp4_overlay_lcdc_vsync_push(struct msm_fb_data_type *mfd,
 			struct mdp4_overlay_pipe *pipe)
 {
@@ -452,8 +487,31 @@ void mdp4_overlay0_done_lcdc(struct mdp_dma_data *dma)
 	complete(&dma->comp);
 }
 
+static void mdp4_overlay_lcdc_prefill(struct msm_fb_data_type *mfd)
+{
+	unsigned long flag;
+
+	if (lcdc_pipe->blt_addr) {
+		mdp4_overlay_lcdc_dma_busy_wait(mfd);
+
+		mdp4_lcdc_blt_ov_update(lcdc_pipe);
+		lcdc_pipe->ov_cnt++;
+
+		spin_lock_irqsave(&mdp_spin_lock, flag);
+		outp32(MDP_INTR_CLEAR, INTR_OVERLAY0_DONE);
+		mdp_intr_mask |= INTR_OVERLAY0_DONE;
+		outp32(MDP_INTR_ENABLE, mdp_intr_mask);
+		mdp_enable_irq(MDP_OVERLAY0_TERM);
+		mfd->dma->busy = TRUE;
+		mb();	/* make sure all registers updated */
+		spin_unlock_irqrestore(&mdp_spin_lock, flag);
+		outpdw(MDP_BASE + 0x0004, 0); /* kickoff overlay engine */
+		mdp4_stat.kickoff_ov0++;
+		mb();
+	}
+}
 /*
- * make sure the MIPI_DSI_WRITEBACK_SIZE defined at boardfile
+ * make sure the WRITEBACK_SIZE defined at boardfile
  * has enough space h * w * 3 * 2
  */
 static void mdp4_lcdc_do_blt(struct msm_fb_data_type *mfd, int enable)
@@ -491,6 +549,10 @@ static void mdp4_lcdc_do_blt(struct msm_fb_data_type *mfd, int enable)
 	msleep(20);
 	mdp4_overlayproc_cfg(lcdc_pipe);
 	mdp4_overlay_dmap_xy(lcdc_pipe);
+	if (lcdc_pipe->blt_addr) {
+		mdp4_overlay_lcdc_prefill(mfd);
+		mdp4_overlay_lcdc_prefill(mfd);
+	}
 	MDP_OUTP(MDP_BASE + LCDC_BASE, 1);	/* start lcdc */
 }
 
@@ -525,6 +587,7 @@ void mdp4_lcdc_overlay(struct msm_fb_data_type *mfd)
 {
 	struct fb_info *fbi = mfd->fbi;
 	uint8 *buf;
+	unsigned int buf_offset;
 	int bpp;
 	struct mdp4_overlay_pipe *pipe;
 
@@ -534,15 +597,31 @@ void mdp4_lcdc_overlay(struct msm_fb_data_type *mfd)
 	/* no need to power on cmd block since it's lcdc mode */
 	bpp = fbi->var.bits_per_pixel / 8;
 	buf = (uint8 *) fbi->fix.smem_start;
-	buf += calc_fb_offset(mfd, fbi, bpp);
+	buf_offset = calc_fb_offset(mfd, fbi, bpp);
 
 	mutex_lock(&mfd->dma->ov_mutex);
 
 	pipe = lcdc_pipe;
-	pipe->srcp0_addr = (uint32) buf;
+	if (pipe->pipe_used == 0 ||
+			pipe->mixer_stage != MDP4_MIXER_STAGE_BASE) {
+		pr_err("%s: NOT baselayer\n", __func__);
+		mutex_unlock(&mfd->dma->ov_mutex);
+		return;
+	}
+
+	if (mfd->map_buffer) {
+		pipe->srcp0_addr = (unsigned int)mfd->map_buffer->iova[0] + \
+			buf_offset;
+		pr_debug("start 0x%lx srcp0_addr 0x%x\n", mfd->
+			map_buffer->iova[0], pipe->srcp0_addr);
+	} else {
+		pipe->srcp0_addr = (uint32)(buf + buf_offset);
+	}
 	mdp4_overlay_rgb_setup(pipe);
-	mdp4_overlay_reg_flush(pipe, 0);
-        mdp4_mixer_stage_up(pipe);
+	mdp4_overlay_reg_flush(pipe, 1);
+	mdp4_mixer_stage_up(pipe);
+	mdp4_overlay_lcdc_start();
 	mdp4_overlay_lcdc_vsync_push(mfd, pipe);
+	mdp4_iommu_unmap(pipe);
 	mutex_unlock(&mfd->dma->ov_mutex);
 }

@@ -140,6 +140,7 @@ int mdp4_overlay_writeback_update(struct msm_fb_data_type *mfd)
 {
 	struct fb_info *fbi;
 	uint8 *buf;
+	unsigned int buf_offset;
 	struct mdp4_overlay_pipe *pipe;
 	int bpp;
 
@@ -155,7 +156,7 @@ int mdp4_overlay_writeback_update(struct msm_fb_data_type *mfd)
 
 	bpp = fbi->var.bits_per_pixel / 8;
 	buf = (uint8 *) fbi->fix.smem_start;
-	buf += fbi->var.xoffset * bpp +
+	buf_offset = fbi->var.xoffset * bpp +
 		fbi->var.yoffset * fbi->fix.line_length;
 
 	/* MDP cmd block enable */
@@ -172,8 +173,15 @@ int mdp4_overlay_writeback_update(struct msm_fb_data_type *mfd)
 	pipe->src_x = 0;
 	pipe->dst_y = 0;
 	pipe->dst_x = 0;
-	pipe->srcp0_addr = (uint32)buf;
 
+	if (mfd->map_buffer) {
+		pipe->srcp0_addr = (unsigned int)mfd->map_buffer->iova[0] + \
+			buf_offset;
+		pr_debug("start 0x%lx srcp0_addr 0x%x\n", mfd->
+			map_buffer->iova[0], pipe->srcp0_addr);
+	} else {
+		pipe->srcp0_addr = (uint32)(buf + buf_offset);
+	}
 
 	mdp4_mixer_stage_up(pipe);
 
@@ -255,7 +263,9 @@ void mdp4_writeback_kickoff_video(struct msm_fb_data_type *mfd,
 	struct msmfb_writeback_data_list *node = NULL;
 	mutex_lock(&mfd->unregister_mutex);
 	mutex_lock(&mfd->writeback_mutex);
-	if (!list_empty(&mfd->writeback_free_queue)) {
+	if (!list_empty(&mfd->writeback_free_queue)
+		&& mfd->writeback_state != WB_STOPING
+		&& mfd->writeback_state != WB_STOP) {
 		node = list_first_entry(&mfd->writeback_free_queue,
 				struct msmfb_writeback_data_list, active_entry);
 	}
@@ -303,7 +313,9 @@ void mdp4_writeback_overlay(struct msm_fb_data_type *mfd)
 
 	mutex_lock(&mfd->unregister_mutex);
 	mutex_lock(&mfd->writeback_mutex);
-	if (!list_empty(&mfd->writeback_free_queue)) {
+	if (!list_empty(&mfd->writeback_free_queue)
+		&& mfd->writeback_state != WB_STOPING
+		&& mfd->writeback_state != WB_STOP) {
 		node = list_first_entry(&mfd->writeback_free_queue,
 				struct msmfb_writeback_data_list, active_entry);
 	}
@@ -342,6 +354,7 @@ void mdp4_writeback_overlay(struct msm_fb_data_type *mfd)
 		pr_debug("%s: in writeback pan display 0x%x\n", __func__,
 				(unsigned int)writeback_pipe->blt_addr);
 		mdp4_writeback_kickoff_ui(mfd, writeback_pipe);
+		mdp4_iommu_unmap(writeback_pipe);
 
 		/* signal if pan function is waiting for the
 		 * update completion */
@@ -391,20 +404,49 @@ static struct msmfb_writeback_data_list *get_if_registered(
 		temp = kzalloc(sizeof(struct msmfb_writeback_data_list),
 				GFP_KERNEL);
 		if (temp == NULL) {
-			pr_err("Out of memory\n");
-			goto err;
+			pr_err("%s: out of memory\n", __func__);
+			goto register_alloc_fail;
 		}
 
-		temp->addr = (void *)(data->iova + data->offset);
+		if (data->iova)
+			temp->addr = (void *)(data->iova + data->offset);
+#ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
+		else {
+			struct ion_handle *srcp_ihdl;
+			ulong len;
+			srcp_ihdl = ion_import_fd(mfd->iclient,
+						  data->memory_id);
+			if (IS_ERR_OR_NULL(srcp_ihdl)) {
+				pr_err("%s: ion import fd failed\n", __func__);
+				goto register_ion_fail;
+			}
+			if (ion_phys(mfd->iclient,
+				     srcp_ihdl,
+				     (ulong *)&temp->addr,
+				     (size_t *)&len)) {
+				pr_err("%s: unable to get ion phys\n",
+				       __func__);
+				goto register_ion_fail;
+			}
+			temp->addr += data->offset;
+		}
+#else
+		else {
+			pr_err("%s: only support ion memory\n", __func__);
+			goto register_ion_fail;
+		}
+#endif
 		memcpy(&temp->buf_info, data, sizeof(struct msmfb_data));
 		if (mdp4_overlay_writeback_register_buffer(mfd, temp)) {
-			pr_err("Error registering node\n");
-			kfree(temp);
-			temp = NULL;
+			pr_err("%s: error registering node\n", __func__);
+			goto register_ion_fail;
 		}
 	}
-err:
 	return temp;
+ register_ion_fail:
+	kfree(temp);
+ register_alloc_fail:
+	return NULL;
 }
 int mdp4_writeback_start(
 		struct fb_info *info)

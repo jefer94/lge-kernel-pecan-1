@@ -794,7 +794,7 @@ int mdp_stop_histogram(struct fb_info *info);
 int mdp_histogram_ctrl(boolean en);
 
 #ifndef CONFIG_FB_MSM_MDP40
-static inline void mdp_dsi_cmd_overlay_suspend(void)
+static inline void mdp_dsi_cmd_overlay_suspend(struct msm_fb_data_type *mfd)
 {
 	/* empty */
 }

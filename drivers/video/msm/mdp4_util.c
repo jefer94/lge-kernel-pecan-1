@@ -28,6 +28,7 @@
 #include <asm/system.h>
 #include <asm/mach-types.h>
 #include <mach/hardware.h>
+#include <mach/iommu_domains.h>
 #include "mdp.h"
 #include "msm_fb.h"
 #include "mdp4.h"
@@ -313,6 +314,8 @@ void mdp4_hw_init(void)
 	clk_rate = mdp_get_core_clk();
 	mdp4_fetch_cfg(clk_rate);
 
+	mdp4_overlay_cfg_init();
+
 	/* Mark hardware as initialized. Only revisions > v2.1 have a register
 	 * for tracking core reset status. */
 	if (mdp_hw_revision > MDP4_REVISION_V2_1)
@@ -377,6 +380,7 @@ irqreturn_t mdp4_isr(int irq, void *ptr)
 	outpdw(MDP_INTR_CLEAR, isr);
 
 	if (isr & INTR_PRIMARY_INTF_UDERRUN) {
+		pr_debug("%s: UNDERRUN -- primary\n", __func__);
 		mdp4_stat.intr_underrun_p++;
 		/* When underun occurs mdp clear the histogram registers
 		that are set before in hw_init so restore them back so
@@ -394,8 +398,10 @@ irqreturn_t mdp4_isr(int irq, void *ptr)
 		}
 	}
 
-	if (isr & INTR_EXTERNAL_INTF_UDERRUN)
+	if (isr & INTR_EXTERNAL_INTF_UDERRUN) {
+		pr_debug("%s: UNDERRUN -- external\n", __func__);
 		mdp4_stat.intr_underrun_e++;
+	}
 
 	isr &= mask;
 
@@ -604,7 +610,7 @@ static uint32 vg_qseed_table0[] = {
 };
 
 static uint32 vg_qseed_table1[] = {
-	0x00000000, 0x20000000,
+	0x76543210, 0xfedcba98
 };
 
 static uint32 vg_qseed_table2[] = {
@@ -2552,8 +2558,8 @@ u32 mdp4_allocate_writeback_buf(struct msm_fb_data_type *mfd, u32 mix_num)
 {
 	struct mdp_buf_type *buf;
 	ion_phys_addr_t	addr;
-        size_t buffer_size;
-	u32 len;
+	size_t buffer_size;
+	unsigned long len;
 
 	if (mix_num == MDP4_MIXER0)
 		buf = mfd->ov0_wb_buf;
@@ -2577,10 +2583,10 @@ u32 mdp4_allocate_writeback_buf(struct msm_fb_data_type *mfd, u32 mix_num)
 		buf->ihdl = ion_alloc(mfd->iclient, buffer_size, SZ_4K,
 			mfd->mem_hid);
 		if (!IS_ERR_OR_NULL(buf->ihdl)) {
-			if (ion_phys(mfd->iclient, buf->ihdl,
-				&addr, &len)) {
-				pr_err("%s:%d: ion_phys map failed\n",
-					__func__, __LINE__);
+			if (ion_map_iommu(mfd->iclient, buf->ihdl,
+				DISPLAY_DOMAIN, GEN_POOL, SZ_4K, 0, &addr,
+				&len, 0, 0)) {
+				pr_err("ion_map_iommu() failed\n");
 				return -ENOMEM;
 			}
 		} else {
@@ -2615,6 +2621,8 @@ void mdp4_free_writeback_buf(struct msm_fb_data_type *mfd, u32 mix_num)
 
 	if (!IS_ERR_OR_NULL(mfd->iclient)) {
 		if (!IS_ERR_OR_NULL(buf->ihdl)) {
+			ion_unmap_iommu(mfd->iclient, buf->ihdl,
+				DISPLAY_DOMAIN, GEN_POOL);
 			ion_free(mfd->iclient, buf->ihdl);
 			pr_info("%s:%d free writeback imem\n", __func__,
 				__LINE__);
