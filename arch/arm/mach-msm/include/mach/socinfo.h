@@ -134,4 +134,69 @@ static inline int cpu_is_msm8960(void)
 #endif
 }
 
+static inline int cpu_is_apq8064(void)
+{
+#ifdef CONFIG_ARCH_APQ8064
+	return read_msm_cpu_type() == MSM_CPU_8064;
+#else
+	return 0;
+#endif
+}
+
+static inline int cpu_is_msm8930(void)
+{
+#ifdef CONFIG_ARCH_MSM8930
+	return (read_msm_cpu_type() == MSM_CPU_8930) ||
+	       (read_msm_cpu_type() == MSM_CPU_8627);
+#else
+	return 0;
+#endif
+}
+
+static inline int cpu_is_msm8627(void)
+{
+/* 8930 and 8627 will share the same CONFIG_ARCH type unless otherwise needed */
+#ifdef CONFIG_ARCH_MSM8930
+	return read_msm_cpu_type() == MSM_CPU_8627;
+#else
+	return 0;
+#endif
+}
+
+static inline int cpu_is_fsm9xxx(void)
+{
+#ifdef CONFIG_ARCH_FSM9XXX
+	enum msm_cpu cpu = socinfo_get_msm_cpu();
+
+	BUG_ON(cpu == MSM_CPU_UNKNOWN);
+	return cpu == FSM_CPU_9XXX;
+#else
+	return 0;
+#endif
+}
+
+static inline int cpu_is_msm9615(void)
+{
+#ifdef CONFIG_ARCH_MSM9615
+	enum msm_cpu cpu = socinfo_get_msm_cpu();
+
+	BUG_ON(cpu == MSM_CPU_UNKNOWN);
+	return cpu == MSM_CPU_9615;
+#else
+	return 0;
+#endif
+}
+
+static inline int cpu_is_msm8625(void)
+{
+#ifdef CONFIG_ARCH_MSM8625
+	enum msm_cpu cpu = socinfo_get_msm_cpu();
+
+	BUG_ON(cpu == MSM_CPU_UNKNOWN);
+	return cpu == MSM_CPU_8625;
+#else
+	return 0;
+#endif
+}
+
 #endif
