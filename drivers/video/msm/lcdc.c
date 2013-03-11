@@ -71,8 +71,8 @@ static int lcdc_off(struct platform_device *pdev)
 	mfd = platform_get_drvdata(pdev);
 	ret = panel_next_off(pdev);
 
-	clk_disable(pixel_mdp_clk);
-	clk_disable(pixel_lcdc_clk);
+	clk_disable_unprepare(pixel_mdp_clk);
+	clk_disable_unprepare(pixel_lcdc_clk);
 
 	if (lcdc_pdata && lcdc_pdata->lcdc_power_save)
 		lcdc_pdata->lcdc_power_save(0);
@@ -134,8 +134,8 @@ static int lcdc_on(struct platform_device *pdev)
 		goto out;
 	}
 
-	clk_enable(pixel_mdp_clk);
-	clk_enable(pixel_lcdc_clk);
+	clk_prepare_enable(pixel_mdp_clk);
+	clk_prepare_enable(pixel_lcdc_clk);
 
 	if (lcdc_pdata && lcdc_pdata->lcdc_power_save)
 		lcdc_pdata->lcdc_power_save(1);
