@@ -1,4 +1,4 @@
-/* Copyright (c) 2008-2011, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2008-2012, Code Aurora Forum. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -93,6 +93,10 @@ struct lcdc_panel_info {
 	__u32 border_clr;
 	__u32 underflow_clr;
 	__u32 hsync_skew;
+	/* Pad width */
+	uint32 xres_pad;
+	/* Pad height */
+	uint32 yres_pad;
 };
 
 struct mddi_panel_info {
