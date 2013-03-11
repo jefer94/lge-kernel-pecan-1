@@ -85,6 +85,7 @@ static int mipi_dsi_off(struct platform_device *pdev)
 	 */
 	if (mfd->panel_info.type == MIPI_CMD_PANEL) {
 		if (mdp_rev >= MDP_REV_41) {
+			mdp4_dsi_cmd_del_timer();
 			mdp4_dsi_cmd_dma_busy_wait(mfd);
 			mdp4_dsi_blt_dmap_busy_wait(mfd);
 			mipi_dsi_mdp_busy_wait(mfd);
@@ -183,9 +184,7 @@ static int mipi_dsi_on(struct platform_device *pdev)
 
 	mipi_dsi_phy_init(0, &(mfd->panel_info), target_type);
 
-	local_bh_disable();
 	mipi_dsi_clk_enable();
-	local_bh_enable();
 
 	MIPI_OUTP(MIPI_DSI_BASE + 0x114, 1);
 	MIPI_OUTP(MIPI_DSI_BASE + 0x114, 0);

@@ -317,8 +317,11 @@ void	mdp3_dsi_cmd_dma_busy_wait(struct msm_fb_data_type *mfd)
 
 	spin_lock_irqsave(&mdp_spin_lock, flag);
 #ifdef DSI_CLK_CTRL
+
+        spin_lock_bh(&dsi_clk_lock);
 	if (mipi_dsi_clk_on == 0)
 		mipi_dsi_clk_enable();
+        spin_unlock_bh(&dsi_clk_lock);
 #endif
 
 	if (mfd->dma->busy == TRUE) {
