@@ -37,6 +37,7 @@
 #include <linux/init.h>
 #include <linux/interrupt.h>
 #include "linux/proc_fs.h"
+#include <linux/sysfs.h>
 
 #include <mach/hardware.h>
 #include <mach/msm_subsystem_map.h>
@@ -207,6 +208,9 @@ struct msm_fb_data_type {
 	u32 writeback_state;
 	int cont_splash_done;
 	int vsync_sysfs_created;
+#ifdef CONFIG_FB_MSM_VSYNC_SYSFS
+	ktime_t vsync_time;
+#endif
 };
 
 struct dentry *msm_fb_get_debugfs_root(void);
@@ -238,5 +242,7 @@ int msm_fb_check_frame_rate(struct msm_fb_data_type *mfd,
 #define INIT_IMAGE_FILE "/initlogo.rle"
 int load_565rle_image(char *filename, bool bf_supported);
 #endif
-
+#ifdef CONFIG_FB_MSM_VSYNC_SYSFS
+int msm_fb_notify_vsync(struct msm_fb_data_type *mfd, ktime_t vsync_time);
+#endif
 #endif /* MSM_FB_H */
