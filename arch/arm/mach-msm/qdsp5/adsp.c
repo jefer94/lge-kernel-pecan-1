@@ -55,7 +55,6 @@ static inline void allow_suspend(void)
 
 #include <linux/io.h>
 #include <mach/msm_iomap.h>
-#include <mach/clk.h>
 #include <mach/msm_adsp.h>
 #include "adsp.h"
 
@@ -281,7 +280,6 @@ int msm_adsp_get(const char *name, struct msm_adsp_module **out,
 	int rc = 0;
 	static uint32_t init_info_cmd_sent;
 
-	mutex_lock(&adsp_info.lock);
 	if (!init_info_cmd_sent) {
 		init_waitqueue_head(&adsp_info.init_info_wait);
 		msm_get_init_info();
@@ -290,13 +288,10 @@ int msm_adsp_get(const char *name, struct msm_adsp_module **out,
 			5 * HZ);
 		if (!rc) {
 			MM_ERR("INIT_INFO failed\n");
-			mutex_unlock(&adsp_info.lock);
 			return -ETIMEDOUT;
-
 		}
 		init_info_cmd_sent++;
 	}
-	mutex_unlock(&adsp_info.lock);
 
 	module = find_adsp_module_by_name(&adsp_info, name);
 	if (!module)
@@ -718,11 +713,22 @@ static void handle_adsp_rtos_mtoa_app(struct rpc_request_hdr *req)
 	mutex_lock(&module->lock);
 	switch (event) {
 	case RPC_ADSP_RTOS_MOD_READY:
-		MM_INFO("module %s: READY\n", module->name);
-		module->state = ADSP_STATE_ENABLED;
-		wake_up(&module->state_wait);
-		adsp_set_image(module->info, image);
-		break;
+		if (module->state == ADSP_STATE_ENABLING) {
+			MM_INFO("module %s: READY\n", module->name);
+			module->state = ADSP_STATE_ENABLED;
+			wake_up(&module->state_wait);
+			adsp_set_image(module->info, image);
+			break;
+		} else {
+			MM_ERR("module %s got READY event in state[%d]\n",
+								module->name,
+								module->state);
+			rpc_send_accepted_void_reply(rpc_cb_server_client,
+						req->xid,
+						RPC_ACCEPTSTAT_GARBAGE_ARGS);
+			mutex_unlock(&module->lock);
+			return;
+		}
 	case RPC_ADSP_RTOS_MOD_DISABLE:
 		MM_INFO("module %s: DISABLED\n", module->name);
 		module->state = ADSP_STATE_DISABLED;
@@ -863,7 +869,8 @@ static int adsp_rtos_read_ctrl_word_cmd_tast_to_h_v(
 	unsigned msg_id;
 	unsigned msg_length;
 #ifdef CONFIG_DEBUG_FS
-	uint16_t *ptr;
+	uint16_t *ptr16;
+	uint32_t *ptr32;
 	int ii;
 #endif /* CONFIG_DEBUG_FS */
 	void (*func)(void *, size_t);
@@ -907,12 +914,20 @@ static int adsp_rtos_read_ctrl_word_cmd_tast_to_h_v(
 		return 0;
 	}
 #ifdef CONFIG_DEBUG_FS
-	if (rdump > 0) {
-		ptr = read_event_addr;
+	if (rdump > 0 &&
+		(dsp_addr >= (void *)(MSM_AD5_BASE + QDSP_RAMC_OFFSET))) {
+		ptr32 = read_event_addr;
+		pr_info("D->A\n");
+		pr_info("m_id = %x id = %x\n", module->id, msg_id);
+		for (ii = 0; ii < msg_length/4; ii++)
+			pr_info("%x ", ptr32[ii]);
+		pr_info("\n");
+	} else if (rdump > 0) {
+		ptr16 = read_event_addr;
 		pr_info("D->A\n");
 		pr_info("m_id = %x id = %x\n", module->id, msg_id);
 		for (ii = 0; ii < msg_length/2; ii++)
-			pr_info("%x ", ptr[ii]);
+			pr_info("%x ", ptr16[ii]);
 		pr_info("\n");
 	}
 #endif /* CONFIG_DEBUG_FS */
@@ -1021,49 +1036,15 @@ static irqreturn_t adsp_irq_handler(int irq, void *data)
 
 int adsp_set_clkrate(struct msm_adsp_module *module, unsigned long clk_rate)
 {
-	if (!module)
-		return -EINVAL;
-
 	if (module->clk && clk_rate)
 		return clk_set_rate(module->clk, clk_rate);
 
 	return -EINVAL;
 }
 
-int msm_adsp_generate_event(void *data,
-			struct msm_adsp_module *mod,
-			unsigned event_id,
-			unsigned event_length,
-			unsigned event_size,
-			void *msg)
-{
-	unsigned long flags;
-	void (*func)(void *, size_t);
-
-	if (!mod)
-		return -EINVAL;
-
-	if (event_size == sizeof(uint32_t))
-		func = read_event_32;
-	else if (event_size == sizeof(uint16_t))
-		func = read_event_16;
-	else
-		return -EINVAL;
-
-	spin_lock_irqsave(&adsp_cmd_lock, flags);
-	read_event_addr = msg;
-	read_event_size = event_length;
-	mod->ops->event(data, event_id, event_length, func);
-	spin_unlock_irqrestore(&adsp_cmd_lock, flags);
-	return 0;
-}
-
 int msm_adsp_enable(struct msm_adsp_module *module)
 {
 	int rc = 0;
-
-	if (!module)
-		return -EINVAL;
 
 	MM_INFO("enable '%s'state[%d] id[%d]\n",
 				module->name, module->state, module->id);
@@ -1117,9 +1098,6 @@ int msm_adsp_disable_event_rsp(struct msm_adsp_module *module)
 {
 	int rc = 0;
 
-	if (!module)
-		return -EINVAL;
-
 	mutex_lock(&module->lock);
 
 	rc = rpc_adsp_rtos_app_to_modem(RPC_ADSP_RTOS_CMD_DISABLE_EVENT_RSP,
@@ -1133,9 +1111,6 @@ EXPORT_SYMBOL(msm_adsp_disable_event_rsp);
 static int msm_adsp_disable_locked(struct msm_adsp_module *module)
 {
 	int rc = 0;
-
-	if (!module)
-		return -EINVAL;
 
 	switch (module->state) {
 	case ADSP_STATE_DISABLED:
@@ -1162,10 +1137,6 @@ static int msm_adsp_disable_locked(struct msm_adsp_module *module)
 int msm_adsp_disable(struct msm_adsp_module *module)
 {
 	int rc;
-
-	if (!module)
-		return -EINVAL;
-
 	MM_INFO("disable '%s'\n", module->name);
 	mutex_lock(&module->lock);
 	rc = msm_adsp_disable_locked(module);
@@ -1206,7 +1177,6 @@ static int msm_adsp_probe(struct platform_device *pdev)
 
 	spin_lock_init(&adsp_cmd_lock);
 	spin_lock_init(&adsp_write_lock);
-	mutex_init(&adsp_info.lock);
 
 	rc = request_irq(INT_ADSP, adsp_irq_handler, IRQF_TRIGGER_RISING,
 			 "adsp", 0);
@@ -1245,11 +1215,10 @@ static int msm_adsp_probe(struct platform_device *pdev)
 		else
 			mod->clk = NULL;
 		if (mod->clk && adsp_info.module[i].clk_rate)
-			clk_set_min_rate(mod->clk,
-						adsp_info.module[i].clk_rate);
+			clk_set_rate(mod->clk, adsp_info.module[i].clk_rate);
 		mod->verify_cmd = adsp_info.module[i].verify_cmd;
 		mod->patch_event = adsp_info.module[i].patch_event;
-		INIT_HLIST_HEAD(&mod->pmem_regions);
+		INIT_HLIST_HEAD(&mod->ion_regions);
 		mod->pdev.name = adsp_info.module[i].pdev_name;
 		mod->pdev.id = -1;
 		adsp_info.id_to_module[i] = mod;

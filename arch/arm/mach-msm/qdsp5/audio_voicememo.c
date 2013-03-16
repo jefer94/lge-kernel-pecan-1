@@ -4,7 +4,7 @@
  *
  * Copyright (C) 2008 Google, Inc.
  * Copyright (C) 2008 HTC Corporation
- * Copyright (c) 2009-2010, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2009-2011, Code Aurora Forum. All rights reserved.
  *
  * This code is based in part on arch/arm/mach-msm/qdsp5/audio_mp3.c
  *
@@ -43,6 +43,7 @@
 #define SND_PROG_VERS "rs30000002:0x00020001"
 #define SND_PROG 0x30000002
 #define SND_VERS_COMP 0x00020001
+#define SND_VERS2_COMP 0x00030001
 
 #define SND_VOC_REC_START_PROC                  19
 #define SND_VOC_REC_STOP_PROC                   20
@@ -265,9 +266,7 @@ static void audvoicememo_flush_buf(struct audio_voicememo *audio)
 		audio->in[index].used = 0;
 
 	audio->read_next = 0;
-	mutex_lock(&audio->dsp_lock);
 	audio->fill_next = 0;
-	mutex_unlock(&audio->dsp_lock);
 }
 
 static void audvoicememo_ioport_reset(struct audio_voicememo *audio)
@@ -388,7 +387,6 @@ static int audvoicememo_disable(struct audio_voicememo *audio)
 		rc = msm_rpc_write(audio->sndept, &rhdr, sizeof(rhdr));
 		wait_event_timeout(audio->wait, audio->stopped == 0,
 				1 * HZ);
-		audio->stopped = 1;
 		wake_up(&audio->read_wait);
 		audmgr_disable(&audio->audmgr);
 		audio->enabled = 0;
@@ -538,14 +536,12 @@ static void process_rpc_request(uint32_t proc, uint32_t xid,
 					callback time\n");
 		else if (rec_status == RPC_VOC_REC_STAT_AUTO_STOP) {
 			MM_DBG(" Voice Record AUTO STOP\n");
-			mutex_lock(&audio->lock);
-			audio->stopped = 1;
 			wake_up(&audio->read_wait);
 			audmgr_disable(&audio->audmgr);
+			audio->stopped = 1;
 			audvoicememo_ioport_reset(audio);
 			audio->stopped = 0;
 			audio->enabled = 0;
-			mutex_unlock(&audio->lock);
 		}
 			break;
 		}
@@ -652,6 +648,7 @@ static long audio_voicememo_ioctl(struct file *file,
 	case AUDIO_STOP: {
 			MM_DBG("AUDIO_STOP\n");
 			rc = audvoicememo_disable(audio);
+			audio->stopped = 1;
 			audvoicememo_ioport_reset(audio);
 			audio->stopped = 0;
 			MM_DBG("AUDIO_STOP rc %d\n", rc);
@@ -860,7 +857,8 @@ static int audio_voicememo_probe(struct platform_device *pdev)
 {
 	int rc;
 
-	if (pdev->id != (SND_VERS_COMP & RPC_VERSION_MAJOR_MASK))
+	if ((pdev->id != (SND_VERS_COMP & RPC_VERSION_MAJOR_MASK)) &&
+	    (pdev->id != (SND_VERS2_COMP & RPC_VERSION_MAJOR_MASK)))
 		return -EINVAL;
 
 	mutex_init(&the_audio_voicememo.lock);
@@ -885,13 +883,21 @@ static int audio_voicememo_probe(struct platform_device *pdev)
 	the_audio_voicememo.sndept = msm_rpc_connect_compatible(SND_PROG,
 					SND_VERS_COMP, MSM_RPC_UNINTERRUPTIBLE);
 	if (IS_ERR(the_audio_voicememo.sndept)) {
-		MM_ERR("connect failed with compatible VERS = %x \n",
+		MM_DBG("connect failed with VERS \
+				= %x, trying again with another API\n",
 				SND_VERS_COMP);
-		rc = PTR_ERR(the_audio_voicememo.sndept);
-		the_audio_voicememo.sndept = NULL;
-		MM_ERR("Failed to connect to snd svc\n");
-		goto err;
-	}
+		the_audio_voicememo.sndept = msm_rpc_connect_compatible(
+					SND_PROG, SND_VERS2_COMP,
+					MSM_RPC_UNINTERRUPTIBLE);
+		if (IS_ERR(the_audio_voicememo.sndept)) {
+			rc = PTR_ERR(the_audio_voicememo.sndept);
+			the_audio_voicememo.sndept = NULL;
+			MM_ERR("Failed to connect to snd svc\n");
+			goto err;
+		}
+		the_audio_voicememo.rpc_ver = SND_VERS2_COMP;
+	} else
+		the_audio_voicememo.rpc_ver = SND_VERS_COMP;
 
 	the_audio_voicememo.task = kthread_run(voicememo_rpc_thread,
 					&the_audio_voicememo, "voicememo_rpc");
@@ -904,7 +910,6 @@ static int audio_voicememo_probe(struct platform_device *pdev)
 		goto err;
 	}
 	the_audio_voicememo.rpc_prog = SND_PROG;
-	the_audio_voicememo.rpc_ver = SND_VERS_COMP;
 
 	return misc_register(&audio_voicememo_misc);
 err:
