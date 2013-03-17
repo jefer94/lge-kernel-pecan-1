@@ -1376,6 +1376,10 @@ int mmc_suspend_host(struct mmc_host *host)
 	if (host->caps & MMC_CAP_DISABLE)
 		cancel_delayed_work(&host->disable);
 
+	if (!strncmp(mmc_hostname(host),"mmc0",4)) {
+		; // do nothing! for do not issue cmd0,cmd41 at wakekup time
+	} else {
+
 	mmc_bus_get(host);
 	if (host->bus_ops && !host->bus_dead) {
 
@@ -1421,7 +1425,7 @@ int mmc_suspend_host(struct mmc_host *host)
 
 	if (!err && !(host->pm_flags & MMC_PM_KEEP_POWER))
 		mmc_power_off(host);
-
+	} // do nothing
 	return err;
 }
 
@@ -1442,6 +1446,10 @@ int mmc_resume_host(struct mmc_host *host)
 		return 0;
 	}
 
+	if (!strncmp(mmc_hostname(host),"mmc0",4)) {
+		; // do nothing! for do not issue cmd0,cmd41 at wakekup time
+	} else {
+
 	if (host->bus_ops && !host->bus_dead) {
 		if (!(host->pm_flags & MMC_PM_KEEP_POWER)) {
 			mmc_power_up(host);
@@ -1455,6 +1463,7 @@ int mmc_resume_host(struct mmc_host *host)
 					    mmc_hostname(host), err);
 			err = 0;
 		}
+	} // do nothing
 	}
 	mmc_bus_put(host);
 
