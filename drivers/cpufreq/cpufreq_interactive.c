@@ -19,6 +19,7 @@
 #include <linux/cpu.h>
 #include <linux/cpumask.h>
 #include <linux/cpufreq.h>
+#include <linux/module.h>
 #include <linux/mutex.h>
 #include <linux/sched.h>
 #include <linux/tick.h>
@@ -27,6 +28,9 @@
 #include <linux/workqueue.h>
 #include <linux/kthread.h>
 #include <linux/mutex.h>
+
+#define CREATE_TRACE_POINTS
+#include <trace/events/cpufreq_interactive.h>
 
 #include <asm/cputime.h>
 
@@ -129,9 +133,8 @@ static void cpufreq_interactive_timer(unsigned long data)
 	if (!idle_exit_time)
 		goto exit;
 
-	delta_idle = (unsigned int) cputime64_sub(now_idle, time_in_idle);
-	delta_time = (unsigned int) cputime64_sub(pcpu->timer_run_time,
-						  idle_exit_time);
+	delta_idle = (unsigned int)(now_idle - time_in_idle);
+	delta_time = (unsigned int)(pcpu->timer_run_time - idle_exit_time);
 
 	/*
 	 * If timer ran less than 1ms after short-term sample started, retry.
@@ -144,10 +147,8 @@ static void cpufreq_interactive_timer(unsigned long data)
 	else
 		cpu_load = 100 * (delta_time - delta_idle) / delta_time;
 
-	delta_idle = (unsigned int) cputime64_sub(now_idle,
-						pcpu->freq_change_time_in_idle);
-	delta_time = (unsigned int) cputime64_sub(pcpu->timer_run_time,
-						  pcpu->freq_change_time);
+	delta_idle = (unsigned int)(now_idle - pcpu->freq_change_time_in_idle);
+	delta_time = (unsigned int)(pcpu->timer_run_time - pcpu->freq_change_time);
 
 	if ((delta_time == 0) || (delta_idle > delta_time))
 		load_since_change = 0;
@@ -183,17 +184,27 @@ static void cpufreq_interactive_timer(unsigned long data)
 	new_freq = pcpu->freq_table[index].frequency;
 
 	if (pcpu->target_freq == new_freq)
+	{
+		trace_cpufreq_interactive_already(data, cpu_load,
+						  pcpu->target_freq, new_freq);
 		goto rearm_if_notmax;
+	}
 
 	/*
 	 * Do not scale down unless we have been at this frequency for the
 	 * minimum sample time.
 	 */
 	if (new_freq < pcpu->target_freq) {
-		if (cputime64_sub(pcpu->timer_run_time, pcpu->freq_change_time)
-		    < min_sample_time)
+		if (pcpu->timer_run_time - pcpu->freq_change_time
+		    < min_sample_time) {
+			trace_cpufreq_interactive_notyet(data, cpu_load,
+					 pcpu->target_freq, new_freq);
 			goto rearm;
+		}
 	}
+
+	trace_cpufreq_interactive_target(data, cpu_load, pcpu->target_freq,
+					 new_freq);
 
 	if (new_freq < pcpu->target_freq) {
 		pcpu->target_freq = new_freq;
@@ -382,6 +393,8 @@ static int cpufreq_interactive_up_task(void *data)
 			pcpu->freq_change_time_in_idle =
 				get_cpu_idle_time_us(cpu,
 						     &pcpu->freq_change_time);
+			trace_cpufreq_interactive_up(cpu, pcpu->target_freq,
+						     pcpu->policy->cur);
 		}
 	}
 
@@ -428,6 +441,8 @@ static void cpufreq_interactive_freq_down(struct work_struct *work)
 		pcpu->freq_change_time_in_idle =
 			get_cpu_idle_time_us(cpu,
 					     &pcpu->freq_change_time);
+		trace_cpufreq_interactive_down(cpu, pcpu->target_freq,
+					       pcpu->policy->cur);
 	}
 }
 
