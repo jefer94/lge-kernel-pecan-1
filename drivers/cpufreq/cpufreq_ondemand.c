@@ -512,6 +512,39 @@ skip_this_cpu_bypass:
 	return count;
 }
 
+static void dbs_boost()
+{
+	int i;
+
+	if ((dbs_tuners_ins.powersave_bias == POWERSAVE_BIAS_MAXLEVEL) ||
+		(dbs_tuners_ins.powersave_bias == POWERSAVE_BIAS_MINLEVEL)) {
+		/* nothing to do */
+		return;
+	}
+
+	for_each_online_cpu(i) {
+		queue_work_on(i, input_wq, &per_cpu(dbs_refresh_work, i));
+	}
+}
+
+static ssize_t store_boostpulse(struct kobject *kobj, struct attribute *attr,
+						  const char *buf, size_t count)
+{
+	int ret;
+	unsigned long val;
+
+	ret = kstrtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+
+	dbs_boost();
+
+	return count;
+}
+
+static struct global_attr boostpulse =
+		__ATTR(boostpulse, 0200, NULL, store_boostpulse);
+
 define_one_global_rw(sampling_rate);
 define_one_global_rw(io_is_busy);
 define_one_global_rw(up_threshold);
@@ -529,6 +562,7 @@ static struct attribute *dbs_attributes[] = {
 	&ignore_nice_load.attr,
 	&powersave_bias.attr,
 	&io_is_busy.attr,
+	&boostpulse.attr,
 	NULL
 };
 
@@ -552,11 +586,7 @@ static void dbs_freq_increase(struct cpufreq_policy *p, unsigned int freq)
 
 static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 {
-	/* Extrapolated load of this CPU */
-	unsigned int load_at_max_freq = 0;
 	unsigned int max_load_freq;
-	/* Current load across this CPU */
-	unsigned int cur_load = 0;
 
 	struct cpufreq_policy *policy;
 	unsigned int j;
@@ -583,7 +613,7 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 		struct cpu_dbs_info_s *j_dbs_info;
 		cputime64_t cur_wall_time, cur_idle_time, cur_iowait_time;
 		unsigned int idle_time, wall_time, iowait_time;
-		unsigned int load_freq;
+		unsigned int load, load_freq;
 		int freq_avg;
 
 		j_dbs_info = &per_cpu(od_cpu_dbs_info, j);
@@ -633,20 +663,16 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 		if (unlikely(!wall_time || wall_time < idle_time))
 			continue;
 
-		cur_load = 100 * (wall_time - idle_time) / wall_time;
+		load = 100 * (wall_time - idle_time) / wall_time;
 
 		freq_avg = __cpufreq_driver_getavg(policy, j);
 		if (freq_avg <= 0)
 			freq_avg = policy->cur;
 
-		load_freq = cur_load * freq_avg;
+		load_freq = load * freq_avg;
 		if (load_freq > max_load_freq)
 			max_load_freq = load_freq;
 	}
-	/* calculate the scaled load across CPU */
-	load_at_max_freq = (cur_load * policy->cur)/policy->cpuinfo.max_freq;
-
-	cpufreq_notify_utilization(policy, load_at_max_freq);
 
 	/* Check for frequency increase */
 	if (max_load_freq > dbs_tuners_ins.up_threshold * policy->cur) {
@@ -814,15 +840,16 @@ static void dbs_input_event(struct input_handle *handle, unsigned int type,
 {
 	int i;
 
-	if ((dbs_tuners_ins.powersave_bias == POWERSAVE_BIAS_MAXLEVEL) ||
-		(dbs_tuners_ins.powersave_bias == POWERSAVE_BIAS_MINLEVEL)) {
-		/* nothing to do */
-		return;
+#ifdef CONFIG_LGE_PM_CURRENT_CONSUMPTION_FIX 
+	if(!strcmp((char*)(handle->dev->name), "accelerometer") || !strcmp((char*)(handle->dev->name), "proximity") || 
+	!strcmp((char*)(handle->dev->name), "magnetic_field") || !strcmp((char*)(handle->dev->name), "gyroscope")||
+	!strcmp((char*)(handle->dev->name), "light") || !strcmp((char*)(handle->dev->name), "touch_dev"))
+	{
+		//printk(KERN_INFO "Not Bumping up CPU for %s", handle->dev->name);
+		return; 
 	}
-
-	for_each_online_cpu(i) {
-		queue_work_on(i, input_wq, &per_cpu(dbs_refresh_work, i));
-	}
+#endif
+	dbs_boost();
 }
 
 static int dbs_input_connect(struct input_handler *handler,
