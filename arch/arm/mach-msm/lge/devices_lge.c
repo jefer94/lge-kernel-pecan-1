@@ -276,7 +276,11 @@ static int __init pmem_mdp_size_setup(char *p)
 }
 early_param("pmem_mdp_size", pmem_mdp_size_setup);
 
+#if defined(CONFIG_MACH_MSM7X27_PECAN)
+static unsigned pmem_adsp_size = 0x9DE000;
+#else
 static unsigned pmem_adsp_size = MSM_PMEM_ADSP_SIZE;
+#endif
 static int __init pmem_adsp_size_setup(char *p)
 {
 	pmem_adsp_size = memparse(p, NULL);
@@ -284,7 +288,11 @@ static int __init pmem_adsp_size_setup(char *p)
 }
 early_param("pmem_adsp_size", pmem_adsp_size_setup);
 
+#if defined(CONFIG_MACH_MSM7X27_PECAN)
+static unsigned pmem_fb_size = 0x96000;
+#else
 static unsigned pmem_fb_size = MSM_FB_SIZE;
+#endif
 static int __init fb_size_setup(char *p)
 {
 	pmem_fb_size = memparse(p, NULL);
