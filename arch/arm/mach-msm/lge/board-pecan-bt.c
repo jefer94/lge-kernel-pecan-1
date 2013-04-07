@@ -76,10 +76,14 @@ static int pecan_bluetooth_toggle_radio(void *data, bool state)
 	return ret;
 }
 
+static int bt_status = 0;
+
 static int pecan_bluetooth_power(int on)
 {
 	int pin, rc;
 
+        if (on == bt_status)
+               return 0;
 	
 	printk(KERN_DEBUG "%s\n", __func__);
 	printk( "%s %d\n", __func__, on);
@@ -114,6 +118,7 @@ static int pecan_bluetooth_power(int on)
 			}
 		}
 	}
+        bt_status = on;
 	return 0;
 }
 
