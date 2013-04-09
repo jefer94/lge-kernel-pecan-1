@@ -21,6 +21,7 @@
 #include "board-pecan.h"
 #include <linux/delay.h>
 #include <linux/rfkill.h>
+#include "../../../arch/arm/mach-msm/devices.h"
 
 /* bluetooth gpio pin */
 enum {
@@ -177,6 +178,7 @@ static struct platform_device msm_bluesleep_device = {
 	},	
 };
 
+extern void bluesleep_setup_uart_port(struct platform_device *uart_dev);
 void __init lge_add_btpower_devices(void)
 {
 	bt_power_init();
@@ -184,4 +186,5 @@ void __init lge_add_btpower_devices(void)
 	platform_device_register(&msm_bt_power_device);
 #endif
 	platform_device_register(&msm_bluesleep_device);
+        bluesleep_setup_uart_port(&msm_device_uart_dm1);
 }
