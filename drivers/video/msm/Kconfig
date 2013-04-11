@@ -53,14 +53,15 @@ config FB_MSM_MDP22
 
 config FB_MSM_MDP30
 	select FB_MSM_LCDC_HW
+        select FB_MSM_MDP_HW
 	bool "MDP HW ver3.0"
 	---help---
 	  Support for MSM MDP HW revision 3.0
-	  Say Y here if this is msm7x25 variant platform.
+	  Say Y here if this is msm7x2x variant platform.
 
 config FB_MSM_MDP303
 	depends on FB_MSM_MDP30
-	select FB_MSM_MDP_HW
+        select FB_MSM_MDP_HW
 	bool "MDP HW ver3.03"
 	default n
 	---help---
@@ -827,7 +828,7 @@ endchoice
 
 choice
 	prompt "Default framebuffer color depth"
-	depends on FB_MSM_MDP40 || FB_MSM_MDP31 || FB_MSM_MDP303
+	depends on FB_MSM_MDP40 || FB_MSM_MDP31 || FB_MSM_MDP303 || FB_MSM_MDP30
 	default FB_MSM_DEFAULT_DEPTH_RGBA8888
 
 config FB_MSM_DEFAULT_DEPTH_RGB565

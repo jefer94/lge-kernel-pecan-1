@@ -877,7 +877,7 @@ void mdp4_overlay_status_write(enum mdp4_overlay_status type, bool val);
 bool mdp4_overlay_status_read(enum mdp4_overlay_status type);
 void mdp4_overlay_borderfill_stage_down(struct mdp4_overlay_pipe *pipe);
 
-#ifdef CONFIG_FB_MSM_MDP303
+#if defined(CONFIG_FB_MSM_MDP303) || defined(CONFIG_FB_MSM_MDP30)
 static inline int mdp4_overlay_borderfill_supported(void)
 {
 	return 0;
