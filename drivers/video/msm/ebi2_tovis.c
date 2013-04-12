@@ -94,11 +94,7 @@ int IsFirstDisplayOn = LCD_RESET_SKIP;
 
 static unsigned int te_lines = 0xef;
 
-#if defined (CONFIG_MACH_MSM7X27_JUMP) || (CONFIG_MACH_MSM7X27_PECAN)
-static unsigned int mactl = 0x48;
-#else
 static unsigned int mactl = 0x98;
-#endif
 
 
 #ifdef TUNING_INITCODE
@@ -456,17 +452,9 @@ static int __init tovis_qvga_init(void)
 #endif
 		pinfo->lcd.vsync_enable = FALSE;
 		pinfo->lcd.refx100 = 6000;
-/*[2012-12-22][junghoon79.kim@lge.com] V3 camera tearing issue(QCT SR: 01031535) [START]*/
-      #ifdef CONFIG_MACH_MSM7X25A_V3
-      pinfo->lcd.v_back_porch = 150;
-		pinfo->lcd.v_front_porch = 140;
-		pinfo->lcd.v_pulse_width = 40;
-      #else
 		pinfo->lcd.v_back_porch = 0x06;
 		pinfo->lcd.v_front_porch = 0x0a;
 		pinfo->lcd.v_pulse_width = 2;
-      #endif
-/*[2012-12-22][junghoon79.kim@lge.com] V3 camera tearing issue(QCT SR: 01031535) [END]*/
 		pinfo->lcd.hw_vsync_mode = FALSE;
 		pinfo->lcd.vsync_notifier_period = 0;
 
