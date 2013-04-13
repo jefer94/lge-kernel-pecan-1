@@ -54,17 +54,7 @@ struct msm_fb_panel_data tovis_qvga_panel_data;
 struct msm_panel_ilitek_pdata *tovis_qvga_panel_pdata;
 struct pm_qos_request_list *tovis_pm_qos_req;
 
-/* For some reason the contrast set at init time is not good. Need to do
-* it again
-*/
-
-/* LGE_CHANGE_S: E0 jiwon.seo@lge.com [2011-11-22] : BL control error fix */
-#if 0
 static boolean display_on = FALSE;
-#else
-int display_on = FALSE; 
-#endif
-/* LGE_CHANGE_E: E0 jiwon.seo@lge.com [2011-11-22] : BL control error fix */
 
 /*[2012-12-20][junghoon79.kim@lge.com] boot time reduction [START]*/
 #define LCD_INIT_SKIP_FOR_BOOT_TIME
@@ -94,7 +84,7 @@ int IsFirstDisplayOn = LCD_RESET_SKIP;
 
 static unsigned int te_lines = 0xef;
 
-static unsigned int mactl = 0x98;
+static unsigned int mactl = 0x48;
 
 
 #ifdef TUNING_INITCODE
@@ -127,12 +117,7 @@ static void msm_fb_ebi2_power_save(int on)
 
 static int ilitek_qvga_disp_off(struct platform_device *pdev)
 {
-
-/* LGE_CHANGE_S: E0 jiwon.seo@lge.com [2011-11-22] : BL control error fix */
-#if 1
 	struct msm_panel_ilitek_pdata *pdata = tovis_qvga_panel_pdata;
-#endif
-/* LGE_CHANGE_E: E0 jiwon.seo@lge.com [2011-11-22] : BL control error fix */
 
 
 	printk("%s: display off...\n", __func__);
@@ -148,12 +133,8 @@ static int ilitek_qvga_disp_off(struct platform_device *pdev)
 	EBI2_WRITE16C(DISP_CMD_PORT, 0x10); // SPLIN
 	msleep(120);
 
-/* LGE_CHANGE_S: E0 jiwon.seo@lge.com [2011-11-22] : BL control error fix */
-#if 1 
 	if(pdata->gpio)
 		gpio_set_value(pdata->gpio, 0);
-#endif	
-/* LGE_CHANGE_E: E0 jiwon.seo@lge.com [2011-11-22] : BL control error fix */
 
 	msm_fb_ebi2_power_save(0);
 	display_on = FALSE;
@@ -442,7 +423,7 @@ static int __init tovis_qvga_init(void)
 		pinfo->yres = QVGA_HEIGHT;
 		pinfo->type = EBI2_PANEL;
 		pinfo->pdest = DISPLAY_1;
-		pinfo->wait_cycle = 0x428000; // 0x908000; /* LGE_CHANGE_S: E0 jiwon.seo@lge.com [2011-11-30] : LCD write timing matching */
+		pinfo->wait_cycle = 0x108000;  // ebi2 write timing reduced by bongkyu.kim
 
 		pinfo->bpp = 16;
 #ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
@@ -450,12 +431,12 @@ static int __init tovis_qvga_init(void)
 #else
 		pinfo->fb_num = 2;
 #endif
-		pinfo->lcd.vsync_enable = FALSE;
+		pinfo->lcd.vsync_enable = TRUE;
 		pinfo->lcd.refx100 = 6000;
 		pinfo->lcd.v_back_porch = 0x06;
 		pinfo->lcd.v_front_porch = 0x0a;
 		pinfo->lcd.v_pulse_width = 2;
-		pinfo->lcd.hw_vsync_mode = FALSE;
+		pinfo->lcd.hw_vsync_mode = TRUE;
 		pinfo->lcd.vsync_notifier_period = 0;
 
 		ret = platform_device_register(&this_device);
