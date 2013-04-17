@@ -2379,12 +2379,23 @@ static int
 wl_pattern_atoh(char *src, char *dst)
 {
 	int i;
+#ifdef CONFIG_MACH_MSM7X27_MUSCAT
+	int srclen = 0;
+	char tmp[] = {0, };
+	srclen = strlen(src);
+	strncpy(tmp, src, srclen);
+	tmp[srclen] = '\0';
+#endif
 	if (strncmp(src, "0x", 2) != 0 &&
 	    strncmp(src, "0X", 2) != 0) {
 		printf("Mask invalid format. Needs to start with 0x\n");
 		return -1;
 	}
+#ifndef CONFIG_MACH_MSM7X27_MUSCAT
 	src = src + 2; /* Skip past 0x */
+	//src = &tmp[2];
+	//printk("[wl_pattern_atoh-debug] src %s\n", src);
+#endif
 	if (strlen(src) % 2 != 0) {
 		printf("Mask invalid format. Needs to be of even length\n");
 		return -1;
@@ -2903,12 +2914,12 @@ int dhd_deep_sleep(struct net_device *dev, int flag)
 		   /* Disable MPC */	
 		   powervar = 0;
 		   bcm_mkiovar("mpc", (char *)&powervar, 4, iovbuf, sizeof(iovbuf));
-		   dhdcdc_set_ioctl(dhd_pub, 0, WLC_SET_VAR, iovbuf, sizeof(iovbuf));
+		   dhdcdc_set_ioctl(dhd_pub, 0, WLC_SET_VAR, iovbuf, sizeof(iovbuf), TRUE);
 
 		   /* Enable Deep Sleep */
 		   powervar = 1;
 		   bcm_mkiovar("deepsleep", (char *)&powervar, 4, iovbuf, sizeof(iovbuf));
-		   dhdcdc_set_ioctl(dhd_pub, 0, WLC_SET_VAR, iovbuf, sizeof(iovbuf));
+		   dhdcdc_set_ioctl(dhd_pub, 0, WLC_SET_VAR, iovbuf, sizeof(iovbuf), TRUE);
 		   break;
 
 	case 0: /*DEEPSLEEP OFF*/
@@ -2917,12 +2928,12 @@ int dhd_deep_sleep(struct net_device *dev, int flag)
 		   /* Disable Deep Sleep */	
 		   powervar = 0;
 		   bcm_mkiovar("deepsleep", (char *)&powervar, 4, iovbuf, sizeof(iovbuf));
-		   dhdcdc_set_ioctl(dhd_pub, 0, WLC_SET_VAR, iovbuf, sizeof(iovbuf));
+		   dhdcdc_set_ioctl(dhd_pub, 0, WLC_SET_VAR, iovbuf, sizeof(iovbuf), TRUE);
 
 		   /* Enable MPC */
 		   powervar = 1;
 		   bcm_mkiovar("mpc", (char *)&powervar, 4, iovbuf, sizeof(iovbuf));
-		   dhdcdc_set_ioctl(dhd_pub, 0, WLC_SET_VAR, iovbuf, sizeof(iovbuf));
+		   dhdcdc_set_ioctl(dhd_pub, 0, WLC_SET_VAR, iovbuf, sizeof(iovbuf), TRUE);
 		   break;
 
 	default: 

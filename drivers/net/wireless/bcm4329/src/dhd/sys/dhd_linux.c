@@ -200,6 +200,13 @@ volatile bool dhd_mmc_suspend = FALSE;
 DECLARE_WAIT_QUEUE_HEAD(dhd_dpc_wait);
 #endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)) && defined(CONFIG_PM_SLEEP) */
 
+/* LGE_CHANGE_S, jisung.yang@lge.com, 2011-4-24, reset wi-fi driver when there a resumed on timeout */
+#if defined(CONFIG_LGE_BCM432X_PATCH)		//by sjpark 11-01-11 : send hang event
+int net_os_send_hang_message(struct net_device *dev);
+extern int wl_iw_send_priv_event( struct net_device *dev, char *evntmsg );
+#endif
+/* LGE_CHANGE_E, jisung.yang@lge.com, 2011-4-24, reset wi-fi driver when there a resumed on timeout */
+
 #if defined(OOB_INTR_ONLY)
 extern void dhd_enable_oob_intr(struct dhd_bus *bus, bool enable);
 #endif /* defined(OOB_INTR_ONLY) */
@@ -269,7 +276,11 @@ typedef struct dhd_info {
 	long dpc_pid;
 	struct semaphore dpc_sem;
 	struct completion dpc_exited;
-
+/* LGE_CHANGE_S, jisung.yang@lge.com, 2011-4-24, reset wi-fi driver when there a resumed on timeout */	
+#if defined(CONFIG_LGE_BCM432X_PATCH)		//by sjpark 11-01-11 : send hang event
+	int hang_was_sent; /* flag that message was send at least once */
+#endif
+/* LGE_CHANGE_E, jisung.yang@lge.com, 2011-4-24, reset wi-fi driver when there a resumed on timeout */	
 	/* Thread to issue ioctl for multicast */
 	long sysioc_pid;
 	struct semaphore sysioc_sem;
@@ -630,14 +641,12 @@ _dhd_set_multicast_list(dhd_info_t *dhd, int ifidx)
 
 	ASSERT(dhd && dhd->iflist[ifidx]);
 	dev = dhd->iflist[ifidx]->net;
-
-	netif_addr_lock_bh(dev);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 35)
 	cnt = netdev_mc_count(dev);
 #else
+	mclist = dev->mc_list;
 	cnt = dev->mc_count;
 #endif
-	netif_addr_unlock_bh(dev);
 
 	/* Determine initial value of allmulti flag */
 	allmulti = (dev->flags & IFF_ALLMULTI) ? TRUE : FALSE;
@@ -659,14 +668,13 @@ _dhd_set_multicast_list(dhd_info_t *dhd, int ifidx)
 	memcpy(bufp, &cnt, sizeof(cnt));
 	bufp += sizeof(cnt);
 
-	netif_addr_lock_bh(dev);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 35)
 	netdev_for_each_mc_addr(ha, dev) {
-	if (!cnt)
-	  break;
-	memcpy(bufp, ha->addr, ETHER_ADDR_LEN);
-	bufp += ETHER_ADDR_LEN;
-	cnt--;
+		if (!cnt)
+			break;
+		memcpy(bufp, ha->addr, ETHER_ADDR_LEN);
+		bufp += ETHER_ADDR_LEN;
+		cnt--;
 	}
 #else
 	for (cnt = 0; mclist && (cnt < dev->mc_count); cnt++, mclist = mclist->next) {
@@ -1767,6 +1775,14 @@ dhd_ioctl_entry(struct net_device *net, struct ifreq *ifr, int cmd)
 
 	bcmerror = dhd_wl_ioctl(&dhd->pub, ifidx, (wl_ioctl_t *)&ioc, buf, buflen);
 
+/* LGE_CHANGE_S, jisung.yang@lge.com, 2011-4-24, reset wi-fi driver when there a resumed on timeout */	
+#if defined(CONFIG_LGE_BCM432X_PATCH)		//by sjpark 11-01-11 : send hang event
+	if (bcmerror == -ETIMEDOUT) {			
+			net_os_send_hang_message(net);
+	}
+#endif
+/* LGE_CHANGE_E, jisung.yang@lge.com, 2011-4-24, reset wi-fi driver when there a resumed on timeout */	
+
 	WAKE_UNLOCK(&dhd->pub, WAKE_LOCK_IOCTL);
 	WAKE_LOCK_DESTROY(&dhd->pub, WAKE_LOCK_IOCTL);
 done:
@@ -1780,6 +1796,25 @@ done:
 
 	return OSL_ERROR(bcmerror);
 }
+
+/* LGE_CHANGE_S, jisung.yang@lge.com, 2011-4-24, reset wi-fi driver when there a resumed on timeout */
+#if defined(CONFIG_LGE_BCM432X_PATCH)		//by sjpark 11-01-11 : send hang event
+int net_os_send_hang_message(struct net_device *dev)
+{
+	dhd_info_t *dhd = *(dhd_info_t **)netdev_priv(dev);
+	int ret = 0;
+
+	if (dhd) {
+		if (!dhd->hang_was_sent) {
+			dhd->hang_was_sent = 1;
+			DHD_ERROR(("%s: Event HANGED send up\n", __FUNCTION__));
+			ret = wl_iw_send_priv_event(dev, "HANGED");
+		}
+	}
+	return ret;
+}
+#endif
+/* LGE_CHANGE_E, jisung.yang@lge.com, 2011-4-24, reset wi-fi driver when there a resumed on timeout */
 
 static int
 dhd_stop(struct net_device *net)
@@ -2414,13 +2449,13 @@ dhd_module_cleanup(void)
 
 /* LGE_CHANGE_S [yoohoo@lge.com] 2009-03-05, for gpio set in dhd_linux */
 #if defined(CONFIG_LGE_BCM432X_PATCH)
-	//gpio_tlmm_config(GPIO_CFG(CONFIG_BCM4329_GPIO_WL_RESET, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
+	//gpio_tlmm_config(GPIO_CFG(CONFIG_BCM4329_GPIO_WL_RESET, 0, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_2MA), GPIO_ENABLE);
 	if (!gpio_get_value(CONFIG_BCM4329_GPIO_WL_RESET)) {
 		gpio_set_value(CONFIG_BCM4329_GPIO_WL_RESET, 1);
 		enable_irq(gpio_to_irq(CONFIG_BCM4329_GPIO_WL_RESET));
 	}	
 	gpio_set_value(CONFIG_BCM4329_GPIO_WL_RESET, 0);
-	//gpio_tlmm_config(GPIO_CFG(CONFIG_BCM4329_GPIO_WL_RESET, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
+	//gpio_tlmm_config(GPIO_CFG(CONFIG_BCM4329_GPIO_WL_RESET, 0, GPIO_INPUT, GPIO_NO_PULL, GPIO_2MA), GPIO_ENABLE);
 #ifdef CONFIG_BCM4329_GPIO_WL_REGON
 	if (!gpio_get_value(CONFIG_BCM4329_GPIO_BT_RESET))
 		gpio_set_value(CONFIG_BCM4329_GPIO_WL_REGON, 0);
@@ -2496,7 +2531,7 @@ dhd_module_init(void)
 	}
 #endif
 	gpio_tlmm_config(GPIO_CFG(CONFIG_BCM4329_GPIO_WL_RESET, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
-//	gpio_configure(CONFIG_BCM4329_GPIO_WL_RESET, GPIOF_DRIVE_OUTPUT);
+	//gpio_configure(CONFIG_BCM4329_GPIO_WL_RESET, GPIOF_DRIVE_OUTPUT);
 /* CONFIG_BCM4329_GPIO_WL_REGON */
 	//gpio_tlmm_config(GPIO_CFG(CONFIG_BCM4329_GPIO_WL_RESET, 0, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_2MA), GPIO_ENABLE);
 	gpio_set_value(CONFIG_BCM4329_GPIO_WL_RESET, 1);
@@ -2757,9 +2792,9 @@ dhd_os_sdtxunlock(dhd_pub_t *pub)
 }
 
 #ifdef DHD_USE_STATIC_BUF
-#if defined(CONFIG_LGE_BCM432X_PATCH) && defined(CONFIG_BRCM_USE_STATIC_BUF)
+#if defined(CONFIG_LGE_BCM432X_PATCH) && defined(CONFIG_BRCM4329_USE_STATIC_BUF)
 extern void* mem_prealloc( int section, unsigned long size);
-#endif /* defined(CONFIG_LGE_BCM432X_PATCH) && defined(CONFIG_BRCM_USE_STATIC_BUF) */
+#endif /* defined(CONFIG_LGE_BCM432X_PATCH) && defined(CONFIG_BRCM4329_USE_STATIC_BUF) */
 void * dhd_os_prealloc(int section, unsigned long size)
 {
 #if defined(CUSTOMER_HW2) && defined(CONFIG_WIFI_CONTROL_FUNC)
@@ -2778,7 +2813,7 @@ void * dhd_os_prealloc(int section, unsigned long size)
 	DHD_ERROR(("can't alloc section %d\n", section));
 	return 0;
 #else
-#if defined(CONFIG_LGE_BCM432X_PATCH) && defined(CONFIG_BRCM_USE_STATIC_BUF)
+#if defined(CONFIG_LGE_BCM432X_PATCH) && defined(CONFIG_BRCM4329_USE_STATIC_BUF)
 	void *alloc_ptr = NULL;
 
 	alloc_ptr = mem_prealloc(section, size);
@@ -2792,7 +2827,7 @@ void * dhd_os_prealloc(int section, unsigned long size)
 	return 0;
 #else
 return MALLOC(0, size);
-#endif /* defined(CONFIG_LGE_BCM432X_PATCH) && defined(CONFIG_BRCM_USE_STATIC_BUF) */
+#endif /* defined(CONFIG_LGE_BCM432X_PATCH) && defined(CONFIG_BRCM4329_USE_STATIC_BUF) */
 #endif /* #if defined(CUSTOMER_HW2) && defined(CONFIG_WIFI_CONTROL_FUNC) */
 }
 #endif /* DHD_USE_STATIC_BUF */
