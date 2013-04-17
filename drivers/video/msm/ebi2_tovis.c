@@ -54,10 +54,19 @@ struct msm_fb_panel_data tovis_qvga_panel_data;
 struct msm_panel_ilitek_pdata *tovis_qvga_panel_pdata;
 struct pm_qos_request_list *tovis_pm_qos_req;
 
-/* For some reason the contrast set at init time is not good. Need to do
-* it again
-*/
 static boolean display_on = FALSE;
+
+/*[2012-12-20][junghoon79.kim@lge.com] boot time reduction [START]*/
+#define LCD_INIT_SKIP_FOR_BOOT_TIME
+/*[2012-12-20][junghoon79.kim@lge.com] boot time reduction [END]*/
+#ifdef LCD_INIT_SKIP_FOR_BOOT_TIME
+int lcd_init_skip_cnt = 0;
+#endif
+
+/* LGE_CHANGE_S: E0 jiwon.seo@lge.com [2011-11-07] :SE 85591 remove white screen during power on */
+#define LCD_RESET_SKIP 1
+int IsFirstDisplayOn = LCD_RESET_SKIP; 
+/* LGE_CHANGE_E: E0 jiwon.seo@lge.com [2011-11-07] :SE 85591 remove white screen during power on */
 
 #define DISP_SET_RECT(csp, cep, psp, pep) \
 	{ \
@@ -75,11 +84,8 @@ static boolean display_on = FALSE;
 
 static unsigned int te_lines = 0xef;
 
-#if defined (CONFIG_MACH_MSM7X27_JUMP) || (CONFIG_MACH_MSM7X27_PECAN)
 static unsigned int mactl = 0x48;
-#else
-static unsigned int mactl = 0x98;
-#endif
+
 
 #ifdef TUNING_INITCODE
 module_param(te_lines, uint, 0644);
@@ -113,22 +119,25 @@ static int ilitek_qvga_disp_off(struct platform_device *pdev)
 {
 	struct msm_panel_ilitek_pdata *pdata = tovis_qvga_panel_pdata;
 
-	printk("%s: display off...", __func__);
+
+	printk("%s: display off...\n", __func__);
 	if (!disp_initialized)
 		tovis_qvga_disp_init(pdev);
 
+#ifndef CONFIG_ARCH_MSM7X27
 	pm_qos_update_request(tovis_pm_qos_req, PM_QOS_DEFAULT_VALUE);
+#endif
 
-		EBI2_WRITE16C(DISP_CMD_PORT, 0x28);
-		mdelay(50);
-		EBI2_WRITE16C(DISP_CMD_PORT, 0x10); // SPLIN
-		mdelay(120);
+	EBI2_WRITE16C(DISP_CMD_PORT, 0x28);
+	msleep(50);
+	EBI2_WRITE16C(DISP_CMD_PORT, 0x10); // SPLIN
+	msleep(120);
 
 	if(pdata->gpio)
 		gpio_set_value(pdata->gpio, 0);
 
-		msm_fb_ebi2_power_save(0);
-		display_on = FALSE;
+	msm_fb_ebi2_power_save(0);
+	display_on = FALSE;
 
 	return 0;
 }
@@ -142,157 +151,8 @@ static void ilitek_qvga_disp_set_rect(int x, int y, int xres, int yres) // xres 
 	EBI2_WRITE16C(DISP_CMD_PORT,0x2c); // Write memory start
 }
 
-static void do_ilitek_init(struct platform_device *pdev)
+static void panel_lgdisplay_init(void)
 {
-#if defined (CONFIG_MACH_MSM7X27_JUMP)
-	EBI2_WRITE16C(DISP_CMD_PORT, 0xc0);
-	EBI2_WRITE16D(DISP_DATA_PORT,0x23); // 1
-
-	EBI2_WRITE16C(DISP_CMD_PORT, 0xc1);
-	EBI2_WRITE16D(DISP_DATA_PORT,0x13); // 1
-
-	EBI2_WRITE16C(DISP_CMD_PORT, 0xc5);
-	EBI2_WRITE16D(DISP_DATA_PORT,0x3b); // 1
-	EBI2_WRITE16D(DISP_DATA_PORT,0x50); // 2
-
-	EBI2_WRITE16C(DISP_CMD_PORT, 0xcb);
-	EBI2_WRITE16D(DISP_DATA_PORT,0x39); // 1
-	EBI2_WRITE16D(DISP_DATA_PORT,0x2c); // 2
-	EBI2_WRITE16D(DISP_DATA_PORT,0x00); // 3
-	EBI2_WRITE16D(DISP_DATA_PORT,0x34); // 4
-	EBI2_WRITE16D(DISP_DATA_PORT,0x02); // 5
-
-	EBI2_WRITE16C(DISP_CMD_PORT, 0xcf);
-	EBI2_WRITE16D(DISP_DATA_PORT,0x00); // 1
-	EBI2_WRITE16D(DISP_DATA_PORT,0x81); // 2
-	EBI2_WRITE16D(DISP_DATA_PORT,0x30); // 3
-
-	EBI2_WRITE16C(DISP_CMD_PORT, 0xe8);
-	EBI2_WRITE16D(DISP_DATA_PORT,0x85); // 1
-	EBI2_WRITE16D(DISP_DATA_PORT,0x01); // 2
-	EBI2_WRITE16D(DISP_DATA_PORT,0x78); // 2
-
-	EBI2_WRITE16C(DISP_CMD_PORT, 0xea);
-	EBI2_WRITE16D(DISP_DATA_PORT,0x00); // 1
-	EBI2_WRITE16D(DISP_DATA_PORT,0x00); // 2
-
-	/* Power on sequence control */
-	EBI2_WRITE16C(DISP_CMD_PORT, 0xed);
-	EBI2_WRITE16D(DISP_DATA_PORT,0x64); // 1
-	EBI2_WRITE16D(DISP_DATA_PORT,0x03); // 2
-	EBI2_WRITE16D(DISP_DATA_PORT,0x12); // 3
-	EBI2_WRITE16D(DISP_DATA_PORT,0x81); // 4
-
-	/* Pump ratio control */
-	EBI2_WRITE16C(DISP_CMD_PORT, 0xf7);
-	EBI2_WRITE16D(DISP_DATA_PORT,0x20); // 1
-
-	/* Display mode setting */
-	EBI2_WRITE16C(DISP_CMD_PORT, 0x13);
-
-	/* Memory access control */
-	EBI2_WRITE16C(DISP_CMD_PORT, 0x36);
-	EBI2_WRITE16D(DISP_DATA_PORT,mactl); // 1
-
-	EBI2_WRITE16C(DISP_CMD_PORT, 0x3a);
-	EBI2_WRITE16D(DISP_DATA_PORT,0x05); // 1
-
-	EBI2_WRITE16C(DISP_CMD_PORT, 0xb1);
-	EBI2_WRITE16D(DISP_DATA_PORT,0x00); // 1
-	EBI2_WRITE16D(DISP_DATA_PORT,0x1b); // 2
-
-	EBI2_WRITE16C(DISP_CMD_PORT, 0xb4);
-	EBI2_WRITE16D(DISP_DATA_PORT,0x00); // 1
-
-	EBI2_WRITE16C(DISP_CMD_PORT, 0xb5);
-	EBI2_WRITE16D(DISP_DATA_PORT,0x0a); // 1
-	EBI2_WRITE16D(DISP_DATA_PORT,0x0f); // 2
-	EBI2_WRITE16D(DISP_DATA_PORT,0x0a); // 3
-	EBI2_WRITE16D(DISP_DATA_PORT,0x14); // 4
-
-	EBI2_WRITE16C(DISP_CMD_PORT, 0xb6);
-	EBI2_WRITE16D(DISP_DATA_PORT,0x0a); // 1
-	EBI2_WRITE16D(DISP_DATA_PORT,0x82); // 2
-	EBI2_WRITE16D(DISP_DATA_PORT,0x27); // 3
-	EBI2_WRITE16D(DISP_DATA_PORT,0x00); // 4
-
-	EBI2_WRITE16C(DISP_CMD_PORT, 0x35);
-	EBI2_WRITE16D(DISP_DATA_PORT,0x00); // 1
-
-	EBI2_WRITE16C(DISP_CMD_PORT, 0x44); // Tearing effect Control
-	EBI2_WRITE16D(DISP_DATA_PORT,te_lines >> 8); // 1
-	EBI2_WRITE16D(DISP_DATA_PORT,te_lines & 0xFF); // 2
-
-  /* Positive Gamma Correction */
-	EBI2_WRITE16C(DISP_CMD_PORT, 0xe0);
-	EBI2_WRITE16D(DISP_DATA_PORT,0x06); // 1
-	EBI2_WRITE16D(DISP_DATA_PORT,0x24); // 2
-	EBI2_WRITE16D(DISP_DATA_PORT,0x1f); // 3
-	EBI2_WRITE16D(DISP_DATA_PORT,0x0f); // 4
-	EBI2_WRITE16D(DISP_DATA_PORT,0x15); // 5
-	EBI2_WRITE16D(DISP_DATA_PORT,0x0f); // 6
-	EBI2_WRITE16D(DISP_DATA_PORT,0x4e); // 6
-	EBI2_WRITE16D(DISP_DATA_PORT,0x08); // 8
-	EBI2_WRITE16D(DISP_DATA_PORT,0x3f); // 9
-	EBI2_WRITE16D(DISP_DATA_PORT,0x0b); // 10
-	EBI2_WRITE16D(DISP_DATA_PORT,0x10); // 11
-	EBI2_WRITE16D(DISP_DATA_PORT,0x03); // 12
-	EBI2_WRITE16D(DISP_DATA_PORT,0x03); // 13
-	EBI2_WRITE16D(DISP_DATA_PORT,0x02); // 14
-	EBI2_WRITE16D(DISP_DATA_PORT,0x00); // 15
-
-  /* Negative Gamma Correction */
-	EBI2_WRITE16C(DISP_CMD_PORT, 0xe1);
-	EBI2_WRITE16D(DISP_DATA_PORT,0x0a); // 1
-	EBI2_WRITE16D(DISP_DATA_PORT,0x1d); // 2
-	EBI2_WRITE16D(DISP_DATA_PORT,0x25); // 3
-	EBI2_WRITE16D(DISP_DATA_PORT,0x06); // 4
-	EBI2_WRITE16D(DISP_DATA_PORT,0x11); // 5
-	EBI2_WRITE16D(DISP_DATA_PORT,0x00); // 6
-	EBI2_WRITE16D(DISP_DATA_PORT,0x33); // 6
-	EBI2_WRITE16D(DISP_DATA_PORT,0x02); // 8
-	EBI2_WRITE16D(DISP_DATA_PORT,0x44); // 9
-	EBI2_WRITE16D(DISP_DATA_PORT,0x05); // 10
-	EBI2_WRITE16D(DISP_DATA_PORT,0x15); // 11
-	EBI2_WRITE16D(DISP_DATA_PORT,0x0f); // 12
-	EBI2_WRITE16D(DISP_DATA_PORT,0x36); // 13
-	EBI2_WRITE16D(DISP_DATA_PORT,0x37); // 14
-	EBI2_WRITE16D(DISP_DATA_PORT,0x0f); // 15
-
-	EBI2_WRITE16C(DISP_CMD_PORT,0x2a); // Set_column_address
-	EBI2_WRITE16D(DISP_DATA_PORT,0x00); // 1
-	EBI2_WRITE16D(DISP_DATA_PORT,0x00); // 2
-	EBI2_WRITE16D(DISP_DATA_PORT,0x00); // 3
-	EBI2_WRITE16D(DISP_DATA_PORT,0xef); // 4
-
-	EBI2_WRITE16C(DISP_CMD_PORT,0x2b); // Set_Page_address
-	EBI2_WRITE16D(DISP_DATA_PORT,0x00); // 1
-	EBI2_WRITE16D(DISP_DATA_PORT,0x00); // 2
-	EBI2_WRITE16D(DISP_DATA_PORT,0x01); // 3
-	EBI2_WRITE16D(DISP_DATA_PORT,0x3f); // 4
-
-	EBI2_WRITE16C(DISP_CMD_PORT,0xe8); // Charge Sharing Control
-	EBI2_WRITE16D(DISP_DATA_PORT,0x85); // 1
-	EBI2_WRITE16D(DISP_DATA_PORT,0x01); // 2
-	EBI2_WRITE16D(DISP_DATA_PORT,0x78); // 3
-
-	EBI2_WRITE16C(DISP_CMD_PORT,0x11); // Exit Sleep
-
-	mdelay(120);
-
-/*-- bootlogo is displayed at oemsbl
-	EBI2_WRITE16C(DISP_CMD_PORT,0x2c); // Write memory start
-	for(y = 0; y < 320; y++) {
-		int pixel = 0x0;
-		for(x= 0; x < 240; x++) {
-			EBI2_WRITE16D(DISP_DATA_PORT,pixel); // 1
-		}
-	}
-
-	mdelay(50);
-*/
-	EBI2_WRITE16C(DISP_CMD_PORT,0x29); // Display On	
-#else
 	EBI2_WRITE16C(DISP_CMD_PORT, 0xc0);
 	EBI2_WRITE16D(DISP_DATA_PORT,0x23); // 1
 
@@ -440,147 +300,46 @@ static void do_ilitek_init(struct platform_device *pdev)
 	mdelay(50);
 */
 	EBI2_WRITE16C(DISP_CMD_PORT,0x29); // Display On
-#endif	
-}
-
-static void do_lgd_init(struct platform_device *pdev)
-{
-	EBI2_WRITE16C(DISP_CMD_PORT, 0x11);
-
-	EBI2_WRITE16C(DISP_CMD_PORT, 0x35);
-	EBI2_WRITE16D(DISP_DATA_PORT,0x00); // 1
-
-	EBI2_WRITE16C(DISP_CMD_PORT, 0x36);
-	EBI2_WRITE16D(DISP_DATA_PORT,mactl); // 1
-
-	EBI2_WRITE16C(DISP_CMD_PORT, 0x3a);
-	EBI2_WRITE16D(DISP_DATA_PORT,0x05); // 1
-
-	EBI2_WRITE16C(DISP_CMD_PORT, 0xb1);
-	EBI2_WRITE16D(DISP_DATA_PORT,0x00); // 1
-	EBI2_WRITE16D(DISP_DATA_PORT,0x17); // 2
-
-	EBI2_WRITE16C(DISP_CMD_PORT, 0xb4);
-	EBI2_WRITE16D(DISP_DATA_PORT,0x00); // 1
-
-	EBI2_WRITE16C(DISP_CMD_PORT, 0xb6);
-	EBI2_WRITE16D(DISP_DATA_PORT,0x0a); // 1
-	EBI2_WRITE16D(DISP_DATA_PORT,0x02); // 2
-
-	/* Power Control 1 */
-	EBI2_WRITE16C(DISP_CMD_PORT, 0xc0);
-	EBI2_WRITE16D(DISP_DATA_PORT,0x12); // 1
-
-	/* Power Control 2 */
-	EBI2_WRITE16C(DISP_CMD_PORT, 0xc1);
-	EBI2_WRITE16D(DISP_DATA_PORT,0x11); // 1
-
-	EBI2_WRITE16C(DISP_CMD_PORT, 0xc5);
-	EBI2_WRITE16D(DISP_DATA_PORT,0x22); // 1
-	EBI2_WRITE16D(DISP_DATA_PORT,0x33); // 2
-
-	EBI2_WRITE16C(DISP_CMD_PORT, 0xc7);
-	EBI2_WRITE16D(DISP_DATA_PORT,0xcf); // 1
-
-	EBI2_WRITE16C(DISP_CMD_PORT, 0xcb);
-	EBI2_WRITE16D(DISP_DATA_PORT,0x39); // 1
-	EBI2_WRITE16D(DISP_DATA_PORT,0x2c); // 2
-	EBI2_WRITE16D(DISP_DATA_PORT,0x00); // 3
-	EBI2_WRITE16D(DISP_DATA_PORT,0x35); // 4
-	EBI2_WRITE16D(DISP_DATA_PORT,0x06); // 5
-
-	EBI2_WRITE16C(DISP_CMD_PORT, 0xcf);
-	EBI2_WRITE16D(DISP_DATA_PORT,0x00); // 1
-	EBI2_WRITE16D(DISP_DATA_PORT,0xba); // 2
-	EBI2_WRITE16D(DISP_DATA_PORT,0xb0); // 3
-
-	EBI2_WRITE16C(DISP_CMD_PORT, 0xe8);
-	EBI2_WRITE16D(DISP_DATA_PORT,0x89); // 1
-	EBI2_WRITE16D(DISP_DATA_PORT,0x00); // 2
-	EBI2_WRITE16D(DISP_DATA_PORT,0x7b); // 3
-
-	EBI2_WRITE16C(DISP_CMD_PORT, 0xea);
-	EBI2_WRITE16D(DISP_DATA_PORT,0x10); // 1
-	EBI2_WRITE16D(DISP_DATA_PORT,0x00); // 2
-
-	EBI2_WRITE16C(DISP_CMD_PORT, 0xf6);
-	EBI2_WRITE16D(DISP_DATA_PORT,0x01); // 1
-	EBI2_WRITE16D(DISP_DATA_PORT,0x30); // 2
-	EBI2_WRITE16D(DISP_DATA_PORT,0x00); // 3
-
-	EBI2_WRITE16C(DISP_CMD_PORT, 0xf7);
-	EBI2_WRITE16D(DISP_DATA_PORT,0x20); // 1
-
-	/* Gamma Setting(Positive) */
-	EBI2_WRITE16C(DISP_CMD_PORT, 0xe0);
-	EBI2_WRITE16D(DISP_DATA_PORT,0x0f); // 1
-	EBI2_WRITE16D(DISP_DATA_PORT,0x22); // 2
-	EBI2_WRITE16D(DISP_DATA_PORT,0x30); // 3
-	EBI2_WRITE16D(DISP_DATA_PORT,0x0f); // 4
-	EBI2_WRITE16D(DISP_DATA_PORT,0x13); // 5
-	EBI2_WRITE16D(DISP_DATA_PORT,0x0e); // 6
-	EBI2_WRITE16D(DISP_DATA_PORT,0x50); // 7
-	EBI2_WRITE16D(DISP_DATA_PORT,0x55); // 8
-	EBI2_WRITE16D(DISP_DATA_PORT,0x2c); // 9
-	EBI2_WRITE16D(DISP_DATA_PORT,0x06); // 10
-	EBI2_WRITE16D(DISP_DATA_PORT,0x14); // 11
-	EBI2_WRITE16D(DISP_DATA_PORT,0x04); // 12
-	EBI2_WRITE16D(DISP_DATA_PORT,0x0a); // 13
-	EBI2_WRITE16D(DISP_DATA_PORT,0x08); // 14
-	EBI2_WRITE16D(DISP_DATA_PORT,0x00); // 15
-
-	/* Gamma Setting(Negative) */
-	EBI2_WRITE16C(DISP_CMD_PORT, 0xe1);
-	EBI2_WRITE16D(DISP_DATA_PORT,0x00); // 1
-	EBI2_WRITE16D(DISP_DATA_PORT,0x0e); // 2
-	EBI2_WRITE16D(DISP_DATA_PORT,0x0f); // 3
-	EBI2_WRITE16D(DISP_DATA_PORT,0x00); // 4
-	EBI2_WRITE16D(DISP_DATA_PORT,0x0c); // 5
-	EBI2_WRITE16D(DISP_DATA_PORT,0x02); // 6
-	EBI2_WRITE16D(DISP_DATA_PORT,0x2e); // 7
-	EBI2_WRITE16D(DISP_DATA_PORT,0x25); // 8
-	EBI2_WRITE16D(DISP_DATA_PORT,0x49); // 9
-	EBI2_WRITE16D(DISP_DATA_PORT,0x05); // 10
-	EBI2_WRITE16D(DISP_DATA_PORT,0x0c); // 11
-	EBI2_WRITE16D(DISP_DATA_PORT,0x0b); // 12
-	EBI2_WRITE16D(DISP_DATA_PORT,0x35); // 13
-	EBI2_WRITE16D(DISP_DATA_PORT,0x38); // 14
-	EBI2_WRITE16D(DISP_DATA_PORT,0x0f); // 15
-
-	EBI2_WRITE16C(DISP_CMD_PORT, 0x29);
 }
 
 static int ilitek_qvga_disp_on(struct platform_device *pdev)
 {
 	struct msm_panel_ilitek_pdata *pdata = tovis_qvga_panel_pdata;
 
-	printk("%s: display on...", __func__);
+	printk("%s: display on... \n", __func__);
 	if (!disp_initialized)
 		tovis_qvga_disp_init(pdev);
 
+#ifdef LCD_INIT_SKIP_FOR_BOOT_TIME
+   if((pdata->initialized && system_state == SYSTEM_BOOTING) || lcd_init_skip_cnt < 1) {
+      lcd_init_skip_cnt =1;
+      printk("%s: display on...Skip!!!!!!  \n", __func__);
+#else
 	if(pdata->initialized && system_state == SYSTEM_BOOTING) {
-		/* Do not hw initialize */
+		/* Do not hw initialize */      
+#endif
 	} else {
+	
 		msm_fb_ebi2_power_save(1);
 
 		if(pdata->gpio) {
+			//mdelay(10);	// prevent stop to listen to music with BT
+			gpio_set_value(pdata->gpio, 1);
+			mdelay(1);
+			gpio_set_value(pdata->gpio, 0);
 			mdelay(10);
-		gpio_set_value(pdata->gpio, 1);
-		mdelay(1);
-		gpio_set_value(pdata->gpio, 0);
-			mdelay(10);
-		gpio_set_value(pdata->gpio, 1);
-		mdelay(120);
+			gpio_set_value(pdata->gpio, 1);
+			msleep(1);
 		}
-		if(pdata->maker_id == PANEL_ID_LGDISPLAY)
-			do_lgd_init(pdev);
-		else
-			do_ilitek_init(pdev);
+
+		/* use pdata->maker_id to detect panel */
+		panel_lgdisplay_init();
 	}
 
 	pm_qos_update_request(tovis_pm_qos_req, 65000);
 	display_on = TRUE;
 
+	  
 	return 0;
 }
 
@@ -606,7 +365,7 @@ ssize_t tovis_qvga_store_onoff(struct device *dev, struct device_attribute *attr
 	return count;
 }
 
-DEVICE_ATTR(lcd_onoff, 0666, tovis_qvga_show_onoff, tovis_qvga_store_onoff);
+DEVICE_ATTR(lcd_onoff, 0664, tovis_qvga_show_onoff, tovis_qvga_store_onoff);
 
 static int __init tovis_qvga_probe(struct platform_device *pdev)
 {
@@ -623,7 +382,8 @@ static int __init tovis_qvga_probe(struct platform_device *pdev)
 	if (ret) {
 		printk("tovis_qvga_probe device_creat_file failed!!!\n");
 	}
-#ifndef CONFIG_ARCH_MSM7X27 //copy what was done for e400
+
+#ifndef CONFIG_ARCH_MSM7X27
 	tovis_pm_qos_req = pm_qos_add_request(PM_QOS_SYSTEM_BUS_FREQ, PM_QOS_DEFAULT_VALUE);
 #endif
 	return 0;
@@ -659,20 +419,24 @@ static int __init tovis_qvga_init(void)
 	ret = platform_driver_register(&this_driver);
 	if (!ret) {
 		pinfo = &tovis_qvga_panel_data.panel_info;
-		pinfo->xres = 240;
-		pinfo->yres = 320;
+		pinfo->xres = QVGA_WIDTH;
+		pinfo->yres = QVGA_HEIGHT;
 		pinfo->type = EBI2_PANEL;
 		pinfo->pdest = DISPLAY_1;
 		pinfo->wait_cycle = 0x108000;  // ebi2 write timing reduced by bongkyu.kim
 
 		pinfo->bpp = 16;
+#ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
+		pinfo->fb_num = 3;
+#else
 		pinfo->fb_num = 2;
-		pinfo->lcd.vsync_enable = FALSE;
+#endif
+		pinfo->lcd.vsync_enable = TRUE;
 		pinfo->lcd.refx100 = 6000;
 		pinfo->lcd.v_back_porch = 0x06;
 		pinfo->lcd.v_front_porch = 0x0a;
 		pinfo->lcd.v_pulse_width = 2;
-		pinfo->lcd.hw_vsync_mode = FALSE;
+		pinfo->lcd.hw_vsync_mode = TRUE;
 		pinfo->lcd.vsync_notifier_period = 0;
 
 		ret = platform_device_register(&this_device);
@@ -682,6 +446,4 @@ static int __init tovis_qvga_init(void)
 
 	return ret;
 }
-
 module_init(tovis_qvga_init);
-
