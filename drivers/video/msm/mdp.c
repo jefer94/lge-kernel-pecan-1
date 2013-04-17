@@ -1820,14 +1820,13 @@ irqreturn_t mdp_isr(int irq, void *ptr)
 			dma = &dma2_data;
 			spin_lock_irqsave(&mdp_spin_lock, flag);
 			vsync_isr = vsync_cntrl.vsync_irq_enabled;
-			disabled_clocks = vsync_cntrl.disabled_clocks;
 			/* let's disable LCDC interrupt */
 			if (dma->waiting) {
 				dma->waiting = FALSE;
 				complete(&dma->comp);
 			}
 
-			if (!vsync_isr && !disabled_clocks) {
+			if (!vsync_isr) {
 				mdp_intr_mask &= ~LCDC_FRAME_START;
 				outp32(MDP_INTR_ENABLE, mdp_intr_mask);
 			}
