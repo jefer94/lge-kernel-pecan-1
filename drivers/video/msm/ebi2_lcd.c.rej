@@ -1,0 +1,17 @@
+--- drivers/video/msm/ebi2_lcd.c
++++ drivers/video/msm/ebi2_lcd.c
+@@ -55,10 +55,14 @@
+ static struct platform_driver ebi2_lcd_driver = {
+ 	.probe = ebi2_lcd_probe,
+ 	.remove = ebi2_lcd_remove,
++#ifndef CONFIG_HAS_EARLYSUSPEND
++#ifdef CONFIG_PM
+ 	.suspend = NULL,
+ 	.suspend_late = NULL,
+ 	.resume_early = NULL,
+ 	.resume = NULL,
++#endif
++#endif
+ 	.shutdown = NULL,
+ 	.driver = {
+ 		   .name = "ebi2_lcd",
