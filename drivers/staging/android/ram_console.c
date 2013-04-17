@@ -56,6 +56,14 @@ static int ram_console_bad_blocks;
 #define ECC_POLY CONFIG_ANDROID_RAM_CONSOLE_ERROR_CORRECTION_POLYNOMIAL
 #endif
 
+#if defined(CONFIG_LGE_SUPPORT_ERS) || defined(CONFIG_LGE_HANDLE_PANIC)
+/* LGE_CHANGES_S [j.y.han@lge.com] 20090904, helper function */
+inline struct ram_console_buffer *get_ram_console_buffer(void)
+{
+	return ram_console_buffer;
+}
+#endif
+
 #ifdef CONFIG_ANDROID_RAM_CONSOLE_ERROR_CORRECTION
 static void ram_console_encode_rs8(uint8_t *data, size_t len, uint8_t *ecc)
 {
@@ -143,7 +151,12 @@ ram_console_write(struct console *console, const char *s, unsigned int count)
 static struct console ram_console = {
 	.name	= "ram",
 	.write	= ram_console_write,
+#if defined (CONFIG_MACH_LGE)	
+	/* LGE_CHANGES_S [lsy@lge.com] 2009-10-29, Do not reprint buffer */
+	.flags	= CON_ENABLED,
+#else	/* origin */
 	.flags	= CON_PRINTBUFFER | CON_ENABLED | CON_ANYTIME,
+#endif
 	.index	= -1,
 };
 
