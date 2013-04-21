@@ -1,0 +1,8 @@
+config MACH_MSM7X27_GELATO
+	depends on ARCH_MSM7X27
+	depends on !MSM_STACKED_MEMORY
+	select MACH_LGE
+	select LGE_4G_DDR
+	bool "MSM7x27 GELATO Global"
+	help
+	 Support for the LGE MSM7x27 GELATO Global board.

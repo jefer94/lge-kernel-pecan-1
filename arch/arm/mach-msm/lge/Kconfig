@@ -4,59 +4,7 @@ config MACH_LGE
 menu "LGE Device-Specific Changes"
 
 menu "LGE Board Selection"
-
-config MACH_MSM7X27_ALESSI
-	depends on ARCH_MSM7X27
-	depends on !MSM_STACKED_MEMORY
-	select MACH_LGE
-	select LGE_4G_DDR
-	bool "MSM7x27 ALESSI Global"
-	help
-	 Support for the LGE MSM7x27 ALESSI Global board.
-
-config MACH_MSM7X27_GELATO
-	depends on ARCH_MSM7X27
-	depends on !MSM_STACKED_MEMORY
-	select MACH_LGE
-	select LGE_4G_DDR
-	bool "MSM7x27 GELATO Global"
-	help
-	 Support for the LGE MSM7x27 GELATO Global board.
-
-config MACH_MSM7X27_MUSCAT
-	depends on ARCH_MSM7X27
-	depends on !MSM_STACKED_MEMORY
-	select MACH_LGE
-	bool "MSM7x27 MUSCAT"
-	help
-	 Support for the LGE MSM7x27 MUSCAT board.
-
-config MACH_MSM7X27_PECAN
-	depends on ARCH_MSM7X27
-	depends on !MSM_STACKED_MEMORY
-	select MACH_LGE
-	bool "MSM7x27 PECAN Global"
-	help
-	 Support for the LGE MSM7x27 PECAN Global board.
-
-config MACH_MSM7X27_THUNDERG
-	depends on ARCH_MSM7X27
-	depends on !MSM_STACKED_MEMORY
-	select MACH_LGE
-	select LGE_4G_DDR
-	bool "MSM7x27 THUNDER Global"
-	help
-	 Support for the LGE MSM7x27 THUNDER Global board.
-
-config MACH_MSM7X27_UNIVA
-	depends on ARCH_MSM7X27
-	depends on !MSM_STACKED_MEMORY
-	select MACH_LGE
-	select LGE_4G_DDR
-	bool "MSM7x27 UNIVA Global"
-	help
-	 Support for the LGE MSM7x27 UNIVA Global board.
-
+source "arch/arm/mach-msm/lge/Kconfig.board"
 endmenu
 
 config LGE_POWER_ON_STATUS_PATCH
@@ -68,12 +16,6 @@ config LGE_POWER_ON_STATUS_PATCH
 	 the same in apps processor's /proc/sys/kernel/boot_reason file.
 	 Ref: Documentation/arcr/arm/msm/boot.txt
 
-config LGE_FACTORY
-        default n
-        bool "LGE factory Configuration"
-        help
-                LGE factory Configuration
-
 config LGE_SUPPORT_ERS
 	tristate "Support LGE ERS system"
 	default n
@@ -81,48 +23,6 @@ config LGE_SUPPORT_ERS
 	depends on ANDROID_RAM_CONSOLE
 	help
 	  LGE error reporting system
-
-config LGE_DIAG_KEYPRESS		
-	        depends on LGE_DIAGTEST		
-	        default y		
-	        bool "LGE UTS KEYPRESS Support"		
-	        help		
-                  LGE UTS KEYPRESS Supports		
-
-config LGE_DIAG_UDM		
-        depends on LGE_FACTORY		
-        default n		
-        bool "LGE UDM Support"		
-        help		
-          LGE UDM Supports		
-
-config LGE_DIAG_SCREENSHOT		
-        depends on LGE_FACTORY		
-        default n		
-        bool "LGE UTS SCREENSHOT Support"		
-        help		
-          LGE UTS SCREENSHOT Supports		
-
-config LGE_DLOAD_SRD		
-        depends on LGE_FACTORY		
-        default n		
-        bool "LGE Dload SelfRecoveryDownload Support"		
-        help		
-          LGE Dload SelfRecoveryDownload Support		
-
-config CONFIG_LGE_DIAG_ERI		
-        depends on LGE_FACTORY		
-        default n		
-        bool "LGE CONFIG_LGE_DIAG_ERI Support"		
-        help		
-          LGE Dload CONFIG_LGE_DIAG_ERI Support		
-
-config LGE_DIAG_DISABLE_INPUT_DEVICES_ON_SLEEP_MODE		
-        depends on LGE_FACTORY		
-        default n		
-        bool "CONFIG_LGE_DIAG_DISABLE_INPUT_DEVICES_ON_SLEEP_MODE"		
-        help		
-          Disable Input Devices on Sleep Mode(250-42-0) for inspector to control key or touch
 
 config LGE_HANDLE_MODEM_CRASH
 	tristate "Support LGE Modem Crash Handler"
@@ -139,21 +39,6 @@ config LGE_HANDLE_PANIC
 	depends on ANDROID_RAM_CONSOLE
 	help
 	  LGE kernel panic handler
-
-config LGE_SUPPORT_RAPI
-	tristate "Support LGE RAPI"
-	default n
-	depends on MACH_LGE
-	help
-	  LGE remote api functions
-
-config LGE_DIAGTEST
-	tristate "Support LGE diag test mode"
-	default n
-	depends on MACH_LGE
-	select LGE_SUPPORT_RAPI
-	help
-	  LGE diag test mode
 
 config LGE_MTD_DIRECT_ACCESS
 	tristate "Support LGE mtd direct access apis"

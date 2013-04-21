@@ -1,0 +1,21 @@
+#
+# Makefile for the LGE board
+#
+
+# LGE alessi Model
+obj-$(CONFIG_MACH_MSM7X27_ALESSI) += alessi/
+
+# LGE gelato Model 
+obj-$(CONFIG_MACH_MSM7X27_GELATO) += gelato/
+
+# LGE muscat Model
+obj-$(CONFIG_MACH_MSM7X27_MUSCAT) += muscat/
+
+# LGE pecan Model 
+obj-$(CONFIG_MACH_MSM7X27_PECAN) += pecan/
+
+# LGE thunderg Model 
+obj-$(CONFIG_MACH_MSM7X27_THUNDERG) += thunderg/
+
+# LGE univa Model 
+obj-$(CONFIG_MACH_MSM7X27_UNIVA) += univa/

@@ -1,0 +1,22 @@
+#
+# Inlcude the specific Kconfig file for LGE board
+#
+
+# LGE alessi Model
+source "arch/arm/mach-msm/lge/alessi/Kconfig"
+
+# LGE gelato Model
+source "arch/arm/mach-msm/lge/gelato/Kconfig"
+
+# LGE muscat Model
+source "arch/arm/mach-msm/lge/muscat/Kconfig"
+
+# LGE pecan Model
+source "arch/arm/mach-msm/lge/pecan/Kconfig"
+
+# LGE thunderg Model
+source "arch/arm/mach-msm/lge/thunderg/Kconfig"
+
+# LGE univa Model
+source "arch/arm/mach-msm/lge/univa/Kconfig"
+

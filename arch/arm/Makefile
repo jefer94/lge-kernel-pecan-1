@@ -259,6 +259,11 @@ core-y				+= arch/arm/perfmon/
 
 libs-y				:= arch/arm/lib/ $(libs-y)
 
+#LGE_CHANGE_S : kernel3.0 porting based on kernel2.6.38 */
+#platform.team@lge.com 2011.01
+core-y		+= lge/
+#LGE_CHANGE_E : kernel3.0 porting based on kernel2.6.38 */
+
 # Default target when executing plain make
 ifeq ($(CONFIG_XIP_KERNEL),y)
 KBUILD_IMAGE := xipImage

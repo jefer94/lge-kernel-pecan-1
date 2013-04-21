@@ -14,17 +14,17 @@
 #include "board-msm7627-regulator.h"
 
 #if defined(CONFIG_MACH_MSM7X27_ALESSI)
-#include "lge/board-alessi.h"
+#include "lge/alessi/board-alessi.h"
 #elif defined(CONFIG_MACH_MSM7X27_GELATO)
-#include "lge/board-gelato.h"
+#include "lge/gelato/board-gelato.h"
 #elif defined(CONFIG_MACH_MSM7X27_MUSCAT)
-#include "lge/board-muscat.h"
+#include "lge/muscat/board-muscat.h"
 #elif defined(CONFIG_MACH_MSM7X27_PECAN)
-#include "lge/board-pecan.h"
+#include "lge/pecan/board-pecan.h"
 #elif defined(CONFIG_MACH_MSM7X27_THUNDERG)
-#include "lge/board-thunderg.h"
+#include "lge/thunderg/board-thunderg.h"
 #elif defined(CONFIG_MACH_MSM7X27_UNIVA)
-#include "lge/board-univa.h"
+#include "lge/univa/board-univa.h"
 #else
 #error DEFINE BOARD HEADER
 #endif
