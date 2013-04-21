@@ -47,7 +47,7 @@
 /* TODO: optimization needed, pmem_mdp is reduced for qvga by bongkyu.kim */
 #define MSM_PMEM_MDP_SIZE	0x1076000 /* 23->12MB + 4.46 MB */
 #ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
-#define MSM_FB_SIZE		0x78000
+#define MSM_FB_SIZE		0x1C3000		/* 20121025 Yoonsoo-Kim[yoonsoo.kim@lge.com] [V3] : QVGA Customization ; 1.76MB  0x4BF000->0x1C3000  */
 #else
 #define MSM_FB_SIZE		0x50000
 #endif
