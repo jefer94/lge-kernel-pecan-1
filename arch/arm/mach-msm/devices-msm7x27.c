@@ -836,20 +836,18 @@ static struct kgsl_device_platform_data kgsl_3d0_pdata = {
 	*/
 	.pwrlevel = {
 		{
-			.gpu_freq = 307200000, 
-                        .bus_freq = 213760000,
-		},
-		{
+#if defined(CONFIG_MACH_LGE)
+/* we can take this punishment */
 			.gpu_freq = 245760000,
-			.bus_freq = 200000000,
-		},
-		{
-			.gpu_freq = 192000000,
-			.bus_freq = 160000000, 
+			.bus_freq = 192000000,
+#else
+			.gpu_freq = 0,
+			.bus_freq = 160000000,
+#endif
 		},
 	},
 	.init_level = 0,
-	.num_levels = 3,
+	.num_levels = 1,
 	.set_grp_async = NULL,
 	.idle_timeout = HZ/5,
 	.clk_map = KGSL_CLK_CORE | KGSL_CLK_IFACE | KGSL_CLK_MEM,
