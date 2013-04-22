@@ -7,10 +7,8 @@ obj-$(CONFIG_MACH_LGE) += devices_lge.o
 obj-$(CONFIG_LGE_HEADSET_2GPIO) += lge_gpio_h2w.o
 obj-$(CONFIG_LGE_SWITCH_GPIO) += lge_gpio_switch.o
 obj-$(CONFIG_LGE_HANDLE_PANIC) += lge_handle_panic.o
-obj-$(CONFIG_LGE_BLUE_ERROR_HANDLER) += lge_errorhandler.o
 obj-$(CONFIG_LGE_PROC_COMM) += lge_proc_comm.o
 obj-$(CONFIG_LGE_SUPPORT_ERS) += lge_ers.o
-obj-$(CONFIG_LGE_MTD_DIRECT_ACCESS) += lge_mtd_direct_access.o  #need this rather than emmc direct access, maybe this was problem on previous builds?
 
 obj-$(CONFIG_LGE_SUPPORT_AT_CMD) += lge_ats.o
 obj-$(CONFIG_LGE_SUPPORT_AT_CMD) += lge_ats_cmd.o

@@ -39,13 +39,6 @@ config LGE_HANDLE_PANIC
 	help
 	  LGE kernel panic handler
 
-config LGE_MTD_DIRECT_ACCESS
-	tristate "Support LGE mtd direct access apis"
-	default n
-	depends on MACH_LGE
-	help
-	  LGE mtd direct access apis
-
 config LGE_HEADSET
 	bool
 
@@ -206,12 +199,6 @@ config LGE_DETECT_PIF_PATCH
 	  This patch is added for detection of pif cable of factory
 	  If pif is once detected, that information will be passed through
 	  sysfs in battery driver
-config LGE_DIAG_WMC
-	bool "Support LGE diag WMC"
-	default n
-	depends on LGE_DIAGTEST
-	help
-	  LGE diag WMC enable
 
 config LGE_GRAM_REFRESH_PATCH
 	bool "LGE gram refresh patch"
@@ -223,19 +210,6 @@ config LGE_GRAM_REFRESH_PATCH
 	  this can cause displaying broken screen in time of turning backlight on.
 	  for preventing this problem, add refreshing routine before turning 
 	  backlight on by using late resume mechanism.
-
-config LGE_FACTORY_PATCH
-	bool "LGE workaround patch for factory process"
-	default n
-	help
-	  This patch is added for factory process in PV event
-	  This supports Calibration process and user factory reset
-
-config LGE_BLUE_ERROR_HANDLER
-	bool "LGE Blue error handler"
-	default n
-	help
-	  This feature support crash handler used thunderg
 
 config LGE_BOOT_MODE
 	bool "LGE boot mode"
