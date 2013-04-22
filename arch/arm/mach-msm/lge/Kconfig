@@ -1,12 +1,11 @@
 config MACH_LGE
 	bool
 
-menu "LGE Device-Specific Changes"
-
 menu "LGE Board Selection"
 source "arch/arm/mach-msm/lge/Kconfig.board"
 endmenu
 
+menu "LGE specific patches"
 config LGE_POWER_ON_STATUS_PATCH
 	bool "Report power on satus of handset"
 	depends on MACH_LGE
@@ -140,10 +139,9 @@ config LGE_PWRSINK
 config LGE_HIDDEN_RESET_PATCH
    bool "Hidden reset function"
    default n
+   depends on MACH_LGE
    help
      This patch supports hidden reset when kernel panic is occured.
-menu "LGE specific patches"
-	depends on MACH_LGE
 
 config LGE_TCP_IMPROVEMENT_PATCH
 	bool "tcp improvement patch for vs740"
@@ -238,6 +236,12 @@ config LGE_BLUE_ERROR_HANDLER
 	default n
 	help
 	  This feature support crash handler used thunderg
-endmenu
+
+config LGE_BOOT_MODE
+	bool "LGE boot mode"
+	depends on MACH_LGE
+	default n
+	help
+	 This feature shows boot mode to userspace through sysfs
 
 endmenu

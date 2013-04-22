@@ -20,6 +20,9 @@
 #include <linux/rfkill.h>
 #include <linux/platform_device.h>
 #include <asm/setup.h>
+#ifdef CONFIG_LGE_BOOT_MODE
+#include <mach/lge/lge_boot_mode.h>
+#endif
 
 #if __GNUC__
 #define __WEAK __attribute__((weak))
@@ -482,6 +485,8 @@ typedef void (gpio_i2c_init_func_t)(int bus_num);
 int __init init_gpio_i2c_pin(struct i2c_gpio_platform_data *i2c_adap_pdata,
 		struct gpio_i2c_pin gpio_i2c_pin,
 		struct i2c_board_info *i2c_board_info_data);
+
+int get_reboot_mode(void);
 
 void __init msm7627_init_regulators(void);
 

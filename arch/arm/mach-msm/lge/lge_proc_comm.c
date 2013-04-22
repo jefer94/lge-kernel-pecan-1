@@ -18,6 +18,7 @@
 #include <linux/init.h>
 #include <linux/delay.h>
 #include <mach/board_lge.h>
+#include <mach/lge/lge_proc_comm.h>
 #include "../proc_comm.h"
 
 #if defined(CONFIG_LGE_DETECT_PIF_PATCH)
@@ -37,6 +38,24 @@ unsigned lge_get_pif_info(void)
 	return pif_value;
 }
 EXPORT_SYMBOL(lge_get_pif_info);
+
+unsigned lge_get_cable_info(void)
+{
+	int err;
+	unsigned pif_value = -1;
+	unsigned cmd_pif = 0x13;
+
+	err = msm_proc_comm(PCOM_CUSTOMER_CMD2, &pif_value, &cmd_pif);
+	
+	if (err < 0) {
+		pr_err("%s: msm_proc_comm(PCOM_CUSTOMER_CMD2) failed\n",
+		       __func__);
+		return err;
+	}
+	
+	return pif_value;
+}
+EXPORT_SYMBOL(lge_get_cable_info);
 
 unsigned lge_get_lpm_info(void)
 {
@@ -158,6 +177,25 @@ unsigned lge_get_batt_volt_raw(void)
 	return ret;
 }
 EXPORT_SYMBOL(lge_get_batt_volt_raw);
+
+// 2012-11-05 Sonchiwon(chiwon.son@lge.com) [V3/V7][Hidden.Menu] HiddenMenu > Settings > Battery > Charging Bypass Boot [START]
+unsigned lge_get_nv_charging_bypass_boot(void)
+{
+	int err;
+	unsigned ret = 0;
+	unsigned cmd = 0x16;
+	
+	err = msm_proc_comm(PCOM_CUSTOMER_CMD2, &ret, &cmd);
+	if (err < 0) {
+		pr_err("%s: msm_proc_comm(PCOM_CUSTOMER_CMD2) failed. cmd(%d)\n",
+		       __func__, cmd);
+		return err;
+	}
+
+	return ret;
+}
+EXPORT_SYMBOL(lge_get_nv_charging_bypass_boot);
+// 2012-11-05 Sonchiwon(chiwon.son@lge.com) [V3/V7][Hidden.Menu] HiddenMenu > Settings > Battery > Charging Bypass Boot [END]
 
 #ifdef CONFIG_MACH_MSM7X27_GELATO
 unsigned lge_get_chg_stat_reg(void)

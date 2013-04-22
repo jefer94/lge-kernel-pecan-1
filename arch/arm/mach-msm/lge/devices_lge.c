@@ -98,6 +98,7 @@ __setup("lge.rev=", board_revno_setup);
 
 /* setting whether uart console is enalbed or disabled */
 static int uart_console_mode = 0;
+static int reboot_mode = 0;
 
 int __init lge_get_uart_mode(void)
 {
@@ -117,6 +118,53 @@ static int __init lge_uart_mode(char *uart_mode)
 }
 
 __setup("uart_console=", lge_uart_mode);
+
+//LGE_CHANGE_E FTM boot mode
+
+int get_reboot_mode(void)
+{
+	return reboot_mode;
+}
+/* LGE_CHANGE_E, [20121110][youngbae.choi@lge.com] */
+
+#ifdef CONFIG_LGE_BOOT_MODE
+static struct platform_device lge_boot_mode_device = {
+	.name = LGE_BOOT_MODE_DEVICE,
+	.id = -1,
+	.dev = {
+		.platform_data = NULL,
+	},
+};
+
+void __init lge_add_boot_mode_devices(void)
+{
+	platform_device_register(&lge_boot_mode_device);
+}
+#endif
+
+static int atoi(const char *name)
+{
+	int val = 0;
+
+	for (;; name++) {
+		switch (*name) {
+		case '0' ... '9':
+			val = 10*val+(*name-'0');
+			break;
+		default:
+			return val;
+		}
+	}
+}
+
+static int __init rebootmode_setup(char *arg)
+{	
+	reboot_mode = atoi(arg);
+	printk(KERN_INFO " rebootmode_setup , reboot_mode = %x \n", reboot_mode);
+
+	return 1;
+}
+__setup("lge.reboot=", rebootmode_setup);
 
 #ifdef CONFIG_ANDROID_RAM_CONSOLE
 static struct resource ram_console_resource[] = {
