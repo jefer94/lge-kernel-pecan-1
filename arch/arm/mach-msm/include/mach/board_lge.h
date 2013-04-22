@@ -37,6 +37,10 @@
 #define LGE_RAM_CONSOLE_SIZE    (128 * SZ_1K * 2)
 #endif
 
+#ifdef CONFIG_LGE_HANDLE_PANIC
+#define LGE_CRASH_LOG_SIZE              (4 * SZ_1K)
+#endif
+
 /* define PMEM address size */
 #ifdef CONFIG_ARCH_MSM7X25
 #define MSM_PMEM_MDP_SIZE   0xb21000
@@ -502,7 +506,10 @@ void __init msm_add_usb_devices(void);
 void __init msm_device_i2c_init(void);
 
 void __init lge_add_ramconsole_devices(void);
+#if defined(CONFIG_ANDROID_RAM_CONSOLE) && defined(CONFIG_LGE_HANDLE_PANIC)
 void __init lge_add_panic_handler_devices(void);
+void lge_set_reboot_reason(unsigned int reason);
+#endif
 void __init lge_add_ers_devices(void);
 
 void __init lge_add_camera_devices(void);
