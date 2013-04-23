@@ -122,52 +122,12 @@ config LGE_PWRSINK
 	help
 	 Choose if use Power sink driver
 
-config LGE_TCP_IMPROVEMENT_PATCH
-	bool "tcp improvement patch for vs740"
-	default n
-	help
-	  This patch is used to improve tcp performance of vs740 model
-	  Disable tcp delayed ack for evdo networks
-
-config LGE_UMS_WORKAROUND_PATCH
-	bool "Workaround patch about USB mass storage for vs740"
-	default n
-	help
-	  This patch is used to workaround UMS not working problem of vs740
-	  Vs740 had UMS not working problem after composition switching
-	  this patch prevents the binding until mass storage thread is killed
-
-config LGE_UMS_PERFORMANCE_PATCH
-	bool "Increasing UMS R/W performance patch"
-	default n
-	help
-	  This patch is QCT's patch code for increasing UMS R/W Performance
-	  It change maximum interrupt interval from 8 micro-frame to immediate
-
-config LGE_AUDIO_HIDDEN_MENU_TEST_PATCH
-	bool "LGE audio hidden menu test patch for vs740"
-	default n
-	help
-	  LGE audio hidden menu test patch for vs740
-
-config LGE_CAMERA_HIDDEN_MENU_TEST_PATCH
-	bool "LGE camera hidden menu test patch for vs740"
-	default n
-	help
-	  LGE camera hidden menu test patch for vs740
-
 config LGE_YAFFS_AUTO_CHECKPOINT_PATCH
 	bool "LGE yaffs auto checkpoint patch"
 	default n
 	help
 	  set value of yaffs_auto_checkpoint to 2. this patch can decreases 
 	  mount time due to scanning all blocks of yaffs partition
-
-config LGE_BRCM_H4_LPM_SUPPORT_PATCH
-	bool "LGE brcm's bluetooth lpm patch"
-	default n
-	help
-	  Support brcm's bluetooth LPM requirement
 
 config LGE_MMC_CLEANUP_PATCH
 	bool "LGE mmc queue cleanup patch"
@@ -185,17 +145,6 @@ config LGE_DETECT_PIF_PATCH
 	  This patch is added for detection of pif cable of factory
 	  If pif is once detected, that information will be passed through
 	  sysfs in battery driver
-
-config LGE_GRAM_REFRESH_PATCH
-	bool "LGE gram refresh patch"
-	default n
-	help
-	  This patch is added for gram-embedded device like mddi.
-	  because, when suspend state, power of mddi is off usually,
-	  gram of DDI chip has garbage data until data of gram is refreshed.
-	  this can cause displaying broken screen in time of turning backlight on.
-	  for preventing this problem, add refreshing routine before turning 
-	  backlight on by using late resume mechanism.
 
 config LGE_BOOT_MODE
 	bool "LGE boot mode"
