@@ -26,7 +26,7 @@
 #include <linux/delay.h>
 #include <linux/timer.h>
 #include <linux/err.h>
-#include <mach/board_lge.h>
+#include <mach/lge/board_lge.h>
 #include <mach/timed_output.h>
 
 struct android_vibrator_platform_data *vibe_data = 0;

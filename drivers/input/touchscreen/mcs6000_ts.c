@@ -36,7 +36,7 @@
 #include "touch_mcs6000_down_ioctl.h"
 #include "touch_mcs6000_ioctl.h"
 #include <linux/i2c-gpio.h>
-#include <mach/board_lge.h>
+#include <mach/lge/board_lge.h>
 
 #include <mach/vreg.h>
 struct vreg {

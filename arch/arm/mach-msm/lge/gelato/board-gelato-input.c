@@ -23,7 +23,7 @@
 #include <mach/gpio.h>
 #include <mach/vreg.h>
 #include <mach/board.h>
-#include <mach/board_lge.h>
+#include <mach/lge/board_lge.h>
 #include <mach/rpc_server_handset.h>
 #include <mach/pmic.h>
 

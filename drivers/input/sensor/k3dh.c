@@ -29,7 +29,7 @@
 #include <linux/miscdevice.h>
 #include <linux/uaccess.h>
 #include <linux/slab.h> // 2.6.35 patch by youngchul.park@lge.com 2010.12.10
-#include <mach/board_lge.h> // platform data
+#include <mach/lge/board_lge.h> // platform data
 #include <linux/akm8973.h>	// akm daemon ioctl set
 
 //#undef CONFIG_HAS_EARLYSUSPEND

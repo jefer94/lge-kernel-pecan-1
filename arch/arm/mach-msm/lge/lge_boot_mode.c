@@ -19,7 +19,7 @@
 #include <asm/processor.h>
 #include <mach/lge/lge_proc_comm.h>
 #include <mach/lge/lge_boot_mode.h>
-#include <mach/board_lge.h>
+#include <mach/lge/board_lge.h>
 
 /* in MSM7k, Defines must sync with
  * modem/modem_proc/modem/rfa/pmic/devices/drivers/inc/pm_pwron.h

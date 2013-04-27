@@ -72,17 +72,6 @@
 #define LDO_CAM_DVDD_NO		3	/* 1.2V */
 #define LDO_CAM_IOVDD_NO	4	/* 2.6V */
 
-// LGE_CHANGE_S dangwoo.choi@lge.com - Proximity Sensor is removed
-#if 0 
-/* proximity sensor */
-#define PROXI_GPIO_I2C_SCL	107
-#define PROXI_GPIO_I2C_SDA 	108
-#define PROXI_GPIO_DOUT		109
-#define PROXI_I2C_ADDRESS	0x44 /*slave address 7bit*/
-#define PROXI_LDO_NO_VCC	1
-#endif
-// LGE_CHANGE_E dangwoo.choi@lge.com - Proximity Sensor is removed
-
 /* accelerometer */
 #define ACCEL_GPIO_INT	 		39
 #define ACCEL_GPIO_I2C_SCL  	2
@@ -115,10 +104,6 @@
 #define GPIO_CARKIT_DETECT	21
 /* ear sense driver macros */
 #define GPIO_EAR_SENSE		29
-
-// LGE_CHANGE_S dangwoo.choi@lge.com - removed
-//#define GPIO_HS_MIC_BIAS_EN	26
-// LGE_CHANGE_E dangwoo.choi@lge.com - removed
 
 /* interface variable */
 extern struct platform_device msm_device_snd;

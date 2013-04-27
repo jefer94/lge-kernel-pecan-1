@@ -18,7 +18,7 @@
 #include <mach/gpio.h>
 #include <mach/vreg.h>
 #include <mach/board.h>
-#include <mach/board_lge.h>
+#include <mach/lge/board_lge.h>
 #include "devices.h"
 #include "board-gelato.h"
 

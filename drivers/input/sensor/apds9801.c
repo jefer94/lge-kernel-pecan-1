@@ -35,7 +35,7 @@
 #include <linux/spinlock.h>
 #include <linux/interrupt.h>
 #include <asm/gpio.h>
-#include <mach/board_lge.h>
+#include <mach/lge/board_lge.h>
 #endif
 
 #define APDS9801_DRV_NAME	"apds9801"

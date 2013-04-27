@@ -10,3 +10,4 @@ obj-$(CONFIG_MACH_MSM7X27_ALESSI) += board-alessi-camera.o
 obj-$(CONFIG_MACH_MSM7X27_ALESSI) += board-alessi-input.o
 obj-$(CONFIG_MACH_MSM7X27_ALESSI) += board-alessi-misc.o
 obj-$(CONFIG_MACH_MSM7X27_ALESSI) += board-alessi-pm.o
+obj-$(CONFIG_MACH_MSM7X27_ALESSI) += board-alessi-regulator.o

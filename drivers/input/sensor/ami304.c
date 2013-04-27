@@ -27,7 +27,7 @@
 #include <linux/module.h>
 #include "ami304.h"
 
-#include <mach/board_lge.h>
+#include <mach/lge/board_lge.h>
 
 #define AMI304_DRV_NAME		"ami304"
 #define DRIVER_VERSION		"1.0.11.19"

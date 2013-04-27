@@ -66,7 +66,7 @@
 #ifdef CONFIG_ARCH_MSM7X27
 #include <linux/msm_kgsl.h>
 #endif
-#include <mach/board_lge.h>
+#include <mach/lge/board_lge.h>
 #include "board-alessi.h"
 
 /* board-specific pm tuning data definitions */

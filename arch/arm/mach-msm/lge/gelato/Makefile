@@ -9,3 +9,4 @@ obj-$(CONFIG_MACH_MSM7X27_GELATO) += board-gelato-camera.o
 obj-$(CONFIG_MACH_MSM7X27_GELATO) += board-gelato-input.o
 obj-$(CONFIG_MACH_MSM7X27_GELATO) += board-gelato-misc.o
 obj-$(CONFIG_MACH_MSM7X27_GELATO) += board-gelato-pm.o
+obj-$(CONFIG_MACH_MSM7X27_GELATO) += board-gelato-regulator.o

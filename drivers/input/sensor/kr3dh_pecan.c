@@ -30,7 +30,7 @@
 #include <linux/uaccess.h>
 #include <linux/slab.h>
 
-#include <mach/board_lge.h> // platform data
+#include <mach/lge/board_lge.h> // platform data
 #include <linux/akm8973.h>	// akm daemon ioctl set
 
 #undef CONFIG_HAS_EARLYSUSPEND

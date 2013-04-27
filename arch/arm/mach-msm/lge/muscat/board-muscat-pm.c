@@ -15,7 +15,7 @@
 #include <linux/pm.h>
 #include <linux/gpio.h>
 #include <mach/board.h>
-#include <mach/board_lge.h>
+#include <mach/lge/board_lge.h>
 #include "board-muscat.h"
 
 int lcd_bl_power_state=0;

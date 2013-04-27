@@ -27,7 +27,7 @@
 #include <linux/module.h>
 #include "ami304_old.h"
 
-#include <mach/board_lge.h>
+#include <mach/lge/board_lge.h>
 
 #define AMI304_DEBUG_PRINT	1
 #define AMI304_ERROR_PRINT	1

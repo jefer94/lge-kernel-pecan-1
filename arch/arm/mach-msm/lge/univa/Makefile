@@ -9,4 +9,5 @@ obj-$(CONFIG_MACH_MSM7X27_UNIVA) += board-univa-camera.o
 obj-$(CONFIG_MACH_MSM7X27_UNIVA) += board-univa-input.o
 obj-$(CONFIG_MACH_MSM7X27_UNIVA) += board-univa-misc.o
 obj-$(CONFIG_MACH_MSM7X27_UNIVA) += board-univa-pm.o
+obj-$(CONFIG_MACH_MSM7X27_UNIVA) += board-univa-regulator.o
 

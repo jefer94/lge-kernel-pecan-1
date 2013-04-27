@@ -49,7 +49,7 @@
 #include "bma250.h"
 #include "bma250_driver.h"
 
-#include <mach/board_lge.h>
+#include <mach/lge/board_lge.h>
 
 #ifdef BMA250_MODULES 
 #include "bma250.c"

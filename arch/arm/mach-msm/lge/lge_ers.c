@@ -21,7 +21,7 @@
 #include <linux/syscalls.h>
 #include <linux/fcntl.h>
 #include <linux/limits.h>
-#include <mach/board_lge.h>
+#include <mach/lge/board_lge.h>
 
 #define ERS_DRIVER_NAME "ers-kernel"
 

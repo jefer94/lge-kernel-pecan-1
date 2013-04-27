@@ -36,7 +36,7 @@
 #include <asm/gpio.h>
 #include <asm/io.h>
 #include <mach/vreg.h>
-#include <mach/board_lge.h>
+#include <mach/lge/board_lge.h>
 #include <linux/pm_qos_params.h>
 
 #define QVGA_WIDTH        240

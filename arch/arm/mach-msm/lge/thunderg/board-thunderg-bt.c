@@ -17,7 +17,7 @@
 #include <asm/setup.h>
 #include <mach/gpio.h>
 #include <mach/vreg.h>
-#include <mach/board_lge.h>
+#include <mach/lge/board_lge.h>
 #include "board-thunderg.h"
 #include <linux/delay.h>
 #include <linux/rfkill.h>

@@ -7,7 +7,7 @@
 #include <linux/platform_device.h>
 #include <asm/io.h>
 #include <linux/slab.h>
-#include <mach/board_lge.h>
+#include <mach/lge/board_lge.h>
 
 extern int lge_erase_block(int ebnum);
 extern int lge_write_block(int ebnum, unsigned char *buf, size_t size);
@@ -22,13 +22,8 @@ static int tolk_store(struct device *dev, struct device_attribute *attr, const c
 	printk("%s:factory reset magic num from android=%s\n",__func__,buf);
 	magic_number = simple_strtoul(buf,NULL,16);
 	printk("magic_number = %lu\n",magic_number);
-#if defined (CONFIG_MACH_MSM7X27_MUSCAT)
-	vir_addr = ioremap(0xffff000, PAGE_SIZE);
-#elif defined (CONFIG_MACH_MSM7X27_PECAN)
 	vir_addr = ioremap(0x0ffff000, PAGE_SIZE);
-#else
-	vir_addr = ioremap(0x2ffff000, PAGE_SIZE);
-#endif
+
 	(*(unsigned int *)vir_addr) = magic_number;
 
 	return count;

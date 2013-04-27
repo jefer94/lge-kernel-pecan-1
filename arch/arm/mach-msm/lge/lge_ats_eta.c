@@ -19,10 +19,10 @@
 #include <linux/syscalls.h>
 #include <linux/fcntl.h>
 #include <linux/slab.h>
-#include <mach/board_lge.h>
+#include <mach/lge/board_lge.h>
 #include <linux/lge_alohag_at.h>
 #include "lge_ats.h"
-#include <mach/lge_diag_test.h>
+#include <mach/lge/lge_diag_test.h>
 
 #define JIFFIES_TO_MS(t) ((t) * 1000 / HZ)
 

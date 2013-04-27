@@ -17,7 +17,7 @@
 #include <linux/kernel.h>
 #include <mach/msm_rpcrouter.h>
 #include <linux/lge_alohag_at.h>
-#include <mach/board_lge.h>
+#include <mach/lge/board_lge.h>
 #include "lge_ats.h"
 
 /* Ats server definitions. */

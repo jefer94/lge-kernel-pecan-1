@@ -20,7 +20,7 @@
 #include <mach/camera.h>
 #include <mach/msm_iomap.h>
 #include <mach/vreg.h>
-#include <mach/board_lge.h>
+#include <mach/lge/board_lge.h>
 
 #include "board-thunderg.h"
 

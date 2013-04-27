@@ -30,7 +30,7 @@
 #include <linux/ioctl.h>
 #include <mach/system.h>
 
-#include <mach/board_lge.h>
+#include <mach/lge/board_lge.h>
 
 #include <linux/akm8973.h>
 

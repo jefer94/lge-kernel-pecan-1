@@ -39,7 +39,7 @@
 #include <mach/vreg.h>
 #include <mach/gpio.h>	
 
-#include <mach/board_lge.h>
+#include <mach/lge/board_lge.h>
 
 #include "ami602.h"
 

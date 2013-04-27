@@ -20,19 +20,6 @@
 
 #define SND(desc, num) { .name = #desc, .id = num }
 static struct snd_endpoint snd_endpoints_list[] = {
-#if 0
-	SND(HANDSET, 0),
-	SND(MONO_HEADSET, 2),
-	SND(HEADSET, 3),
-	SND(SPEAKER, 6),
-	SND(TTY_HEADSET, 8),
-	SND(TTY_VCO, 9),
-	SND(TTY_HCO, 10),
-	SND(BT, 12),
-	SND(IN_S_SADC_OUT_HANDSET, 16),
-	SND(IN_S_SADC_OUT_SPEAKER_PHONE, 25),
-	SND(CURRENT, 27),
-#else
 /* LGE_CHANGE_S, [junyoub.an] , 2010-02-12, Define sound device*/
 	SND(HANDSET_LOOPBACK,5),
 	SND(HANDSET, 6),
@@ -56,7 +43,6 @@ static struct snd_endpoint snd_endpoints_list[] = {
 	SND(CURRENT, 30),
 /* LGE_CHANGE_E, [junyoub.an] , 2010-02-12, Define sound device*/
 
-#endif
 };
 #undef SND
 
@@ -72,24 +58,6 @@ struct platform_device msm_device_snd = {
 		.platform_data = &msm_device_snd_endpoints
 	},
 };
-#if 0
-#define DEC0_FORMAT ((1<<MSM_ADSP_CODEC_MP3)| \
-	(1<<MSM_ADSP_CODEC_AAC)|(1<<MSM_ADSP_CODEC_WMA)| \
-	(1<<MSM_ADSP_CODEC_WMAPRO)|(1<<MSM_ADSP_CODEC_AMRWB)| \
-	(1<<MSM_ADSP_CODEC_AMRNB)|(1<<MSM_ADSP_CODEC_WAV)| \
-	(1<<MSM_ADSP_CODEC_ADPCM)|(1<<MSM_ADSP_CODEC_YADPCM)| \
-	(1<<MSM_ADSP_CODEC_EVRC)|(1<<MSM_ADSP_CODEC_QCELP))
-#define DEC1_FORMAT ((1<<MSM_ADSP_CODEC_WAV)|(1<<MSM_ADSP_CODEC_ADPCM)| \
-	(1<<MSM_ADSP_CODEC_YADPCM)|(1<<MSM_ADSP_CODEC_QCELP)| \
-	(1<<MSM_ADSP_CODEC_MP3))
-#define DEC2_FORMAT ((1<<MSM_ADSP_CODEC_WAV)|(1<<MSM_ADSP_CODEC_ADPCM)| \
-	(1<<MSM_ADSP_CODEC_YADPCM)|(1<<MSM_ADSP_CODEC_QCELP)| \
-	(1<<MSM_ADSP_CODEC_MP3))
-#define DEC3_FORMAT ((1<<MSM_ADSP_CODEC_WAV)|(1<<MSM_ADSP_CODEC_ADPCM)| \
-	(1<<MSM_ADSP_CODEC_YADPCM)|(1<<MSM_ADSP_CODEC_QCELP))
-#define DEC4_FORMAT (1<<MSM_ADSP_CODEC_MIDI)
-
-#else
 
 #define DEC0_FORMAT ((1<<MSM_ADSP_CODEC_MP3)| \
 (1<<MSM_ADSP_CODEC_AAC)|(1<<MSM_ADSP_CODEC_WMA)| \
@@ -126,7 +94,6 @@ struct platform_device msm_device_snd = {
 (1<<MSM_ADSP_CODEC_ADPCM)|(1<<MSM_ADSP_CODEC_YADPCM)| \
 (1<<MSM_ADSP_CODEC_EVRC)|(1<<MSM_ADSP_CODEC_QCELP))
 #define DEC4_FORMAT (1<<MSM_ADSP_CODEC_MIDI)
-#endif
 #endif
 
 static unsigned int dec_concurrency_table[] = {
@@ -185,31 +152,13 @@ static unsigned int dec_concurrency_table[] = {
 	.module_queueid = queueid, .module_decid = decid, \
 	.nr_codec_support = nr_codec}
 
-#if 0 //original
 static struct msm_adspdec_info dec_info_list[] = {
 	DEC_INFO("AUDPLAY0TASK", 13, 0, 11), /* AudPlay0BitStreamCtrlQueue */
-	DEC_INFO("AUDPLAY1TASK", 14, 1, 5),  /* AudPlay1BitStreamCtrlQueue */
-	DEC_INFO("AUDPLAY2TASK", 15, 2, 5),  /* AudPlay2BitStreamCtrlQueue */
-	DEC_INFO("AUDPLAY3TASK", 16, 3, 4),  /* AudPlay3BitStreamCtrlQueue */
+	DEC_INFO("AUDPLAY1TASK", 14, 1, 11),  /* AudPlay1BitStreamCtrlQueue */
+	DEC_INFO("AUDPLAY2TASK", 15, 2, 11),  /* AudPlay2BitStreamCtrlQueue */
+	DEC_INFO("AUDPLAY3TASK", 16, 3, 11),  /* AudPlay3BitStreamCtrlQueue */
 	DEC_INFO("AUDPLAY4TASK", 17, 4, 1),  /* AudPlay4BitStreamCtrlQueue */
 };
-
-#else
-static struct msm_adspdec_info dec_info_list[] = {
-DEC_INFO("AUDPLAY0TASK", 13, 0, 11), /* AudPlay0BitStreamCtrlQueue */
-#ifdef CONFIG_ARCH_MSM7X25
-DEC_INFO("AUDPLAY1TASK", 14, 1, 5), /* AudPlay1BitStreamCtrlQueue */
-DEC_INFO("AUDPLAY2TASK", 15, 2, 5), /* AudPlay2BitStreamCtrlQueue */
-DEC_INFO("AUDPLAY3TASK", 16, 3, 0), /* AudPlay3BitStreamCtrlQueue */
-DEC_INFO("AUDPLAY4TASK", 17, 4, 0), /* AudPlay4BitStreamCtrlQueue */
-#else
-DEC_INFO("AUDPLAY1TASK", 14, 1, 11), /* AudPlay1BitStreamCtrlQueue */
-DEC_INFO("AUDPLAY2TASK", 15, 2, 11), /* AudPlay2BitStreamCtrlQueue */
-DEC_INFO("AUDPLAY3TASK", 16, 3, 11), /* AudPlay3BitStreamCtrlQueue */
-DEC_INFO("AUDPLAY4TASK", 17, 4, 1), /* AudPlay4BitStreamCtrlQueue */
-#endif
-};
-#endif
 
 static struct msm_adspdec_database msm_device_adspdec_database = {
 	.num_dec = ARRAY_SIZE(dec_info_list),

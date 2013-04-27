@@ -27,7 +27,7 @@
 #include <mach/vreg.h>
 #include <mach/mpp.h>
 #include <mach/board.h>
-#include <mach/board_lge.h>
+#include <mach/lge/board_lge.h>
 #include "board-gelato.h"
 
 #ifdef CONFIG_MMC_MSM_CARD_HW_DETECTION

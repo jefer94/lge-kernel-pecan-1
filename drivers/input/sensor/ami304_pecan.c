@@ -36,7 +36,7 @@ static int skip_count = 0;
 
 #include "ami304_pecan.h"
 
-#include <mach/board_lge.h>
+#include <mach/lge/board_lge.h>
 
 #define AMI304_DRV_NAME		"ami304"
 #define DRIVER_VERSION		"1.0.11.19"

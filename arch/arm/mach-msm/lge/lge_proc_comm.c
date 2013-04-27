@@ -17,7 +17,7 @@
 #include <linux/device.h>
 #include <linux/init.h>
 #include <linux/delay.h>
-#include <mach/board_lge.h>
+#include <mach/lge/board_lge.h>
 #include <mach/lge/lge_proc_comm.h>
 #include "../proc_comm.h"
 

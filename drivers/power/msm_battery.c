@@ -37,7 +37,7 @@
 #include <mach/msm_rpcrouter.h>
 #include <mach/msm_battery.h>
 #if defined(CONFIG_LGE_DETECT_PIF_PATCH)
-#include <mach/board_lge.h>
+#include <mach/lge/board_lge.h>
 #endif
 
 #define BATTERY_RPC_PROG	0x30000089

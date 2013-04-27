@@ -18,7 +18,7 @@
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <mach/msm_rpcrouter.h>
-#include <mach/board_lge.h>
+#include <mach/lge/board_lge.h>
 #include <linux/fcntl.h>
 #include <linux/syscalls.h>
 

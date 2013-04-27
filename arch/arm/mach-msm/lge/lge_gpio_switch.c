@@ -22,7 +22,7 @@
 #include <linux/gpio.h>
 #include <linux/list.h>
 #include <linux/slab.h>
-#include <mach/board_lge.h>
+#include <mach/lge/board_lge.h>
 
 static LIST_HEAD(switchs);
 

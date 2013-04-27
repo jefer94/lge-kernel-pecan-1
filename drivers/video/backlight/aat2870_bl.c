@@ -25,7 +25,7 @@
 #include <linux/delay.h>
 #include <linux/gpio.h>
 #include <linux/mutex.h>
-#include <mach/board_lge.h>
+#include <mach/lge/board_lge.h>
 
 #define MODULE_NAME  "aat2870bl"
 #define CONFIG_AAT28XX_LEDS_CLASS

@@ -28,7 +28,7 @@
 #include <mach/msm_iomap.h>
 #include <asm/io.h>
 #include <mach/rpc_server_handset.h>
-#include <mach/board_lge.h>
+#include <mach/lge/board_lge.h>
 #include <mach/msm_rpcrouter.h>
 #include "board-pecan.h"
 

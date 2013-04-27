@@ -46,7 +46,7 @@
 #endif
 
 #ifdef CONFIG_MACH_LGE
-#include <mach/board_lge.h>
+#include <mach/lge/board_lge.h>
 #endif
 
 #ifdef CONFIG_MSM_MEMORY_LOW_POWER_MODE_SUSPEND_DEEP_POWER_DOWN

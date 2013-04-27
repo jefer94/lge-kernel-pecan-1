@@ -48,7 +48,7 @@
 #include <asm/processor.h>
 #endif
 
-#include <mach/board_lge.h>
+#include <mach/lge/board_lge.h>
 #include "../board-msm7627-regulator.h"
 #include "../devices.h"
 #include "../pm.h"

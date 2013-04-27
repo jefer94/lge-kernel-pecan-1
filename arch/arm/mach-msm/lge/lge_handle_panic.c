@@ -21,7 +21,7 @@
 #include <linux/delay.h>
 #include <linux/io.h>
 #include <asm/setup.h>
-#include <mach/board_lge.h>
+#include <mach/lge/board_lge.h>
 
 #define PANIC_HANDLER_NAME "panic-handler"
 #define PANIC_DUMP_CONSOLE 0

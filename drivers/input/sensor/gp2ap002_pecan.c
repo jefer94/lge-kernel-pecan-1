@@ -38,7 +38,7 @@
 
 #include <linux/slab.h>
 
-#include <mach/board_lge.h>
+#include <mach/lge/board_lge.h>
 
 #define PROXIMITY_DEBUG_PRINT	(1)
 #define PROXIMITY_ERROR_PRINT	(1)

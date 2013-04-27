@@ -37,7 +37,7 @@
 #include <asm/atomic.h>
 #include <mach/board.h>
 #include <mach/vreg.h>
-#include <mach/board_lge.h>
+#include <mach/lge/board_lge.h>
 
 #define DEBUG_H2W
 #ifdef DEBUG_H2W

@@ -15,7 +15,7 @@
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <mach/msm_rpcrouter.h>
-#include <mach/board_lge.h>
+#include <mach/lge/board_lge.h>
 #include "lge_ats.h"
 #include "lge_ats_cmd.h"
 
