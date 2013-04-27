@@ -25,6 +25,7 @@
 
 #include "board-pecan.h"
 
+extern int pclk_rate;
 int mclk_rate = 24000000;
                 
 DEFINE_MUTEX(camera_power_mutex);
@@ -319,6 +320,7 @@ static struct msm_camera_device_platform_data msm_camera_device_data = {
 	.ioext.appsz  = MSM_CLK_CTL_SIZE,
 	.camera_power_on = camera_power_on,
 	.camera_power_off = camera_power_off,
+        .camera_standy_high = camera_standy_high,  // 2011-03-21 Samsung camera sensor porting
 };
 
 #if defined (CONFIG_ISX005)
@@ -354,5 +356,11 @@ static struct platform_device *pecan_camera_devices[] __initdata = {
 
 void __init lge_add_camera_devices(void)
 {
+
+    if (lge_bd_rev >= LGE_REV_F)
+    pclk_rate = 32;
+  else
+    pclk_rate = 27;
+
 	platform_add_devices(pecan_camera_devices, ARRAY_SIZE(pecan_camera_devices));
 }
