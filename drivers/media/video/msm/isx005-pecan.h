@@ -107,6 +107,26 @@ struct isx005_reg {
  /* brightness start */
 	const struct isx005_register_address_value_pair *brightness_reg_settings;
 	uint16_t brightness_reg_settings_size; 
+
+/* scene start */
+       const struct isx005_register_address_value_pair
+		*scene_auto_reg_settings;
+	uint16_t scene_auto_reg_settings_size;
+	const struct isx005_register_address_value_pair
+		*scene_portrait_reg_settings;
+	uint16_t scene_portrait_reg_settings_size;
+	const struct isx005_register_address_value_pair
+		*scene_landscape_reg_settings;
+	uint16_t scene_landscape_reg_settings_size;
+	const struct isx005_register_address_value_pair
+		*scene_sports_reg_settings;
+	uint16_t scene_sports_reg_settings_size;
+	const struct isx005_register_address_value_pair
+		*scene_sunset_reg_settings;
+	uint16_t scene_sunset_reg_settings_size;
+	const struct isx005_register_address_value_pair
+		*scene_night_reg_settings;
+	uint16_t scene_night_reg_settings_size;
 };
 
 /* this value is defined in Android native camera */
@@ -132,6 +152,16 @@ enum isx005_iso_value {
 	CAMERA_ISO_400,
 	CAMERA_ISO_800,
 	CAMERA_ISO_MAX
+};
+
+/* Enum type for scene mode */
+enum {
+	CAMERA_SCENE_AUTO = 1,
+	CAMERA_SCENE_PORTRAIT,
+	CAMERA_SCENE_LANDSCAPE,
+	CAMERA_SCENE_SPORTS,
+	CAMERA_SCENE_NIGHT,
+	CAMERA_SCENE_SUNSET,
 };
 
 // 2010-11-24 change the framerate mode between capture and video

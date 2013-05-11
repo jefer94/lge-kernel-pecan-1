@@ -1063,7 +1063,7 @@ tuning_reg_settings_array[] = {
  {0x098E, 0xC907, WORD_LEN}, 	// MCU_ADDRESS [CAM1_LL_DM_EDGE_TH_STOP]
  {0x0990, 0x0050, WORD_LEN}, 	// MCU_DATA_0
  {0x098E, 0xBC02, WORD_LEN}, 	// MCU_ADDRESS [LL_MODE]
- {0x0990, 0x0005, WORD_LEN}, 	//D //2010-12-24 센서 Defect관련 수정 // MCU_DATA_0
+ {0x0990, 0x0005, WORD_LEN}, 	//D //2010-12-24 \BC\BE\BC\AD Defect\B0\FC\B7\C3 \BC\F6\C1\A4 // MCU_DATA_0
  {0x098E, 0xC908, WORD_LEN}, 	// MCU_ADDRESS [CAM1_LL_AP_KNEE_START]
  {0x0990, 0x000A, WORD_LEN}, 	// MCU_DATA_0
  {0x098E, 0xC909, WORD_LEN}, 	// MCU_ADDRESS [CAM1_LL_AP_KNEE_STOP]
@@ -4974,6 +4974,134 @@ brightness_reg_settings_array2[] = {
 };
 /* Brightness end */
 
+static const struct isx005_register_address_value_pair const
+	scene_mode_auto_reg_settings_array[] = 
+{
+	{0x0100, 0x00, BYTE_LEN},	// SCENE_SELECT :                                       
+	{0x0062, 0x20, BYTE_LEN},	// UISHARPNESS[7:0]   ?????? -1                                                                  
+	{0x01BE, 0x01, BYTE_LEN},	// MAx FRAME TYPE2 LONG AE MODE  66MS FOR 1/2S          
+	{0x4A00, 0x0D05, WORD_LEN},	//MIN SHT START FROM 2LINE @CAPTURE
+	{0x4A02, 0x0000, WORD_LEN},	//MIN AGC
+	{0x4016, 0x1621, WORD_LEN},	// NORMSHTSCL_L : 60MS
+	{0x4018, 0xCA03, WORD_LEN},	// AGCLOWSCL_L : 3DB  
+	{0x401A, 0x0002, WORD_LEN},	// ExPSHTSCL_L : 82MS 
+	{0x401C, 0xCA03, WORD_LEN},	// AGCHISCL_L : 9DB   
+	{0x401E, 0x6C03, WORD_LEN},	// MAxSHTSCL_L : 110MS2301 
+	{0x4020, 0x3004, WORD_LEN},	// AGCMAxSCL_L : 18.3DB
+
+	{0x4887, 0x02, BYTE_LEN},
+	{0x4856, 0x28, BYTE_LEN},
+	{0x486C, 0x2800, WORD_LEN},
+	{0x4870, 0x2800, WORD_LEN},
+};
+
+static const struct isx005_register_address_value_pair const 
+	scene_mode_portrait_reg_settings_array[] = 
+{
+	{0x0100, 0x01, BYTE_LEN},	// SCENE_SELECT :                                       
+	{0x0062, 0x16, BYTE_LEN},	// UISHARPNESS[7:0]   ?????? -1                                                                  
+	{0x01BE, 0x01, BYTE_LEN},	// MAx FRAME TYPE2 LONG AE MODE  66MS FOR 1/2S          
+	{0x4A00, 0x0D05, WORD_LEN},	//MIN SHT START FROM 2LINE @CAPTURE
+	{0x4A02, 0x0000, WORD_LEN},	//MIN AGC
+	{0x4016, 0x1621, WORD_LEN},	// NORMSHTSCL_L : 60MS
+	{0x4018, 0xCA03, WORD_LEN},	// AGCLOWSCL_L : 3DB  
+	{0x401A, 0x0002, WORD_LEN},	// ExPSHTSCL_L : 82MS 
+	{0x401C, 0xCA03, WORD_LEN},	// AGCHISCL_L : 9DB   
+	{0x401E, 0x6C03, WORD_LEN},	// MAxSHTSCL_L : 110MS2301 
+	{0x4020, 0x3004, WORD_LEN},	// AGCMAxSCL_L : 18.3DB
+
+	{0x4887, 0x02, BYTE_LEN},
+	{0x4856, 0x28, BYTE_LEN},
+	{0x486C, 0x2800, WORD_LEN},
+	{0x4870, 0x2800, WORD_LEN},
+};
+
+static const struct isx005_register_address_value_pair const
+	scene_mode_landscape_reg_settings_array[] = 
+{
+	{0x0100, 0x02, BYTE_LEN},	// SCENE_SELECT :                                       
+	{0x0062, 0x2A, BYTE_LEN},	// UISHARPNESS[7:0]   ?????? -1                         
+	{0x01BE, 0x01, BYTE_LEN},	// MAx FRAME TYPE2 LONG AE MODE  66MS FOR 1/2S                                            
+	{0x4A00, 0x0D05, WORD_LEN},	//MIN SHT START FROM 2LINE @CAPTURE
+	{0x4A02, 0x0000, WORD_LEN},	//MIN AGC
+	{0x4016, 0x1621, WORD_LEN}, // NORMSHTSCL_L : 60MS
+	{0x4018, 0xCA03, WORD_LEN}, // AGCLOWSCL_L : 3DB  
+	{0x401A, 0x0002, WORD_LEN}, // ExPSHTSCL_L : 82MS 
+	{0x401C, 0xCA03, WORD_LEN}, // AGCHISCL_L : 9DB   
+	{0x401E, 0x6C03, WORD_LEN}, // MAxSHTSCL_L : 110MS2301 
+	{0x4020, 0x3004, WORD_LEN}, // AGCMAxSCL_L : 18.3DB
+
+	{0x4887, 0x02, BYTE_LEN},
+	{0x4856, 0x28, BYTE_LEN},
+	{0x486C, 0x2800, WORD_LEN},
+	{0x4870, 0x2800, WORD_LEN},
+};
+
+static const struct isx005_register_address_value_pair const
+	scene_mode_sports_reg_settings_array[] =
+{
+	{0x0100, 0x03, BYTE_LEN},	// SCENE_SELECT :  SPORT
+	{0x0062, 0x20, BYTE_LEN},	// UISHARPNESS[7:0]   ??????
+	{0x01BE, 0x01, BYTE_LEN},	// MAx FRAME TYPE2 LONG AE MODE  66MS FOR 1/2S
+	{0x4A00, 0x0D05, WORD_LEN},	//MIN SHT START FROM 2LINE @CAPTURE
+	{0x4A02, 0x0000, WORD_LEN},	//MIN AGC
+	{0x4016, 0x1621, WORD_LEN}, // NORMSHTSCL_L : 60MS
+	{0x4018, 0xCA03, WORD_LEN}, // AGCLOWSCL_L : 3DB  
+	{0x401A, 0x0002, WORD_LEN}, // ExPSHTSCL_L : 82MS 
+	{0x401C, 0xCA03, WORD_LEN}, // AGCHISCL_L : 9DB   
+	{0x401E, 0x6C03, WORD_LEN}, // MAxSHTSCL_L : 110MS2301 
+	{0x4020, 0x3004, WORD_LEN}, // AGCMAxSCL_L : 18.3DB
+
+	{0x4887, 0x02, BYTE_LEN},
+	{0x4856, 0x28, BYTE_LEN},
+	{0x486C, 0x2800, WORD_LEN},
+	{0x4870, 0x2800, WORD_LEN},
+};
+
+static const struct isx005_register_address_value_pair const 
+	scene_mode_sunset_reg_settings_array[] = 
+{
+	{0x0100, 0x06, BYTE_LEN},	// SCENE_SELECT :                                       
+	{0x0062, 0x20, BYTE_LEN},	// UISHARPNESS[7:0]   ?????? -1                                                                  
+	{0x01BE, 0x01, BYTE_LEN},	// MAx FRAME TYPE2 LONG AE MODE  66MS FOR 1/2S          
+	{0x4A00, 0x0D05, WORD_LEN},	//MIN SHT START FROM 2LINE @CAPTURE
+	{0x4A02, 0x0000, WORD_LEN},	//MIN AGC
+	{0x4016, 0x1621, WORD_LEN}, // NORMSHTSCL_L : 60MS
+	{0x4018, 0xCA03, WORD_LEN}, // AGCLOWSCL_L : 3DB  
+	{0x401A, 0x0002, WORD_LEN}, // ExPSHTSCL_L : 82MS 
+	{0x401C, 0xCA03, WORD_LEN}, // AGCHISCL_L : 9DB
+	{0x401E, 0x6C03, WORD_LEN}, // MAxSHTSCL_L : 110MS2301 
+	{0x4020, 0x3004, WORD_LEN}, // AGCMAxSCL_L : 18.3DB
+
+	{0x4887, 0x02, BYTE_LEN},
+	{0x4856, 0x28, BYTE_LEN},
+	{0x486C, 0x2800, WORD_LEN},
+	{0x4870, 0x2800, WORD_LEN},
+};
+
+static const struct isx005_register_address_value_pair const 
+	scene_mode_night_reg_settings_array[] = 
+{
+	{0x4A00, 0x0D05, WORD_LEN},	//MIN SHT START FROM 2LINE @CAPTURE
+	{0x4A02, 0x0000, WORD_LEN},	//MIN AGC
+	{0x4016, 0x1621, WORD_LEN},	// NORMSHTSCL_L : 60MS
+	{0x4018, 0xCA03, WORD_LEN},	// AGCLOWSCL_L : 3DB
+	{0x401A, 0x0002, WORD_LEN},	// ExPSHTSCL_L : 82MS
+	{0x401C, 0xCA03, WORD_LEN},	// AGCHISCL_L : 9DB
+	{0x401E, 0xF307, WORD_LEN},	// MAxSHTSCL_L
+	{0x4020, 0x3004, WORD_LEN},	// AGCMAxSCL_L : 18.3DB
+	{0x01BE, 0x01, BYTE_LEN},	// MAx FRAME TYPE2 LONG AE MODE  66MS FOR 1/2S
+	{0x0130, 0x01, BYTE_LEN},	// AE_SN10 :  AUTO
+	{0x0131, 0x8D, BYTE_LEN},	// AE_SUB_SN10 : 1/2S
+	{0x0062, 0x20, BYTE_LEN},	// UISHARPNESS[7:0]
+	{0x0100, 0x09, BYTE_LEN},	// SCENE_SELECT :
+
+	{0x4887, 0x00, BYTE_LEN},
+	{0x4856, 0x3c, BYTE_LEN},
+	{0x486C, 0x3C00, WORD_LEN},
+	{0x4870, 0x3200, WORD_LEN},
+};
+
 struct isx005_reg isx005_regs = {
 	.init_reg_settings = init_reg_settings_array,
 	.init_reg_settings_size = ARRAY_SIZE(
@@ -5062,6 +5190,25 @@ struct isx005_reg isx005_regs = {
 	.brightness_reg_settings = brightness_reg_settings_array,
 	.brightness_reg_settings_size = ARRAY_SIZE(
 	 brightness_reg_settings_array),
+
+        .scene_auto_reg_settings = scene_mode_auto_reg_settings_array,
+	.scene_auto_reg_settings_size = ARRAY_SIZE(
+		scene_mode_auto_reg_settings_array),
+	.scene_portrait_reg_settings = scene_mode_portrait_reg_settings_array,
+	.scene_portrait_reg_settings_size = ARRAY_SIZE(
+		scene_mode_portrait_reg_settings_array),
+	.scene_landscape_reg_settings = scene_mode_landscape_reg_settings_array,
+	.scene_landscape_reg_settings_size = ARRAY_SIZE(
+		scene_mode_landscape_reg_settings_array),
+	.scene_sports_reg_settings = scene_mode_sports_reg_settings_array,
+	.scene_sports_reg_settings_size = ARRAY_SIZE(
+		scene_mode_sports_reg_settings_array),
+	.scene_sunset_reg_settings = scene_mode_sunset_reg_settings_array,
+	.scene_sunset_reg_settings_size = ARRAY_SIZE(
+		scene_mode_sunset_reg_settings_array),
+	.scene_night_reg_settings = scene_mode_night_reg_settings_array,
+	.scene_night_reg_settings_size = ARRAY_SIZE(
+		scene_mode_night_reg_settings_array),
 };
 
 #endif /* #define ISX005_REG_H */

@@ -761,6 +761,60 @@ static int isx005_set_iso(int iso)
 	return rc;
 }
 
+static int32_t isx005_set_scene_mode(int8_t mode)
+{
+	int32_t rc = 0;
+
+	if (prev_scene_mode == mode)
+		return rc;
+
+	switch (mode) {
+	case CAMERA_SCENE_AUTO:
+		rc = isx005_i2c_write_table(
+			isx005_regs.scene_auto_reg_settings,
+			isx005_regs.scene_auto_reg_settings_size);
+		break;
+
+	case CAMERA_SCENE_PORTRAIT:
+		rc = isx005_i2c_write_table(
+			isx005_regs.scene_portrait_reg_settings,
+			isx005_regs.scene_portrait_reg_settings_size);
+		break;
+
+	case CAMERA_SCENE_LANDSCAPE:
+		rc = isx005_i2c_write_table(
+			isx005_regs.scene_landscape_reg_settings,
+			isx005_regs.scene_landscape_reg_settings_size);
+		break;
+
+	case CAMERA_SCENE_SPORTS:
+		rc = isx005_i2c_write_table(
+			isx005_regs.scene_sports_reg_settings,
+			isx005_regs.scene_sports_reg_settings_size);
+		break;
+
+	case CAMERA_SCENE_SUNSET:
+		rc = isx005_i2c_write_table(
+			isx005_regs.scene_sunset_reg_settings,
+			isx005_regs.scene_sunset_reg_settings_size);
+		break;
+
+	case CAMERA_SCENE_NIGHT:
+		rc = isx005_i2c_write_table(
+			isx005_regs.scene_night_reg_settings,
+			isx005_regs.scene_night_reg_settings_size);
+		break;
+
+	default:
+		printk(KERN_ERR "[ERROR]%s:Incorrect scene mode value\n",
+			__func__);
+	}
+
+	prev_scene_mode = mode;
+
+	return rc;
+}
+
 /* brightness register setting */
 static int32_t isx005_set_brightness(int8_t brightness)
 {
@@ -1067,7 +1121,7 @@ int isx005_sensor_config(void __user *argp)
 		break;
  }
 	case CFG_SET_SCENE: /* not support */
-	 rc = 0;
+	 rc = isx005_set_scene_mode(cfg_data.mode);
 		break;
 
 	case CFG_SET_BRIGHTNESS: {
