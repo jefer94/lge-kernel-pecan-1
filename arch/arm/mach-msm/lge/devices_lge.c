@@ -291,7 +291,11 @@ static void __init lge_make_fb_pmem(void)
 
 	fb_copy_phys = MSM7X27_EBI1_CS0_BASE + bank->size + LGE_RAM_CONSOLE_SIZE;
 	/* Modify HIDDEN_RSEET_FB_SIZE defined in board_lge.h */
+#if defined(CONFIG_MACH_MSM7X27_PECAN)
+        fb_copy_size = 240 * 320 * 2;
+#else
 	fb_copy_size = HIDDEN_RESET_FB_SIZE;
+#endif 
 
 	fb_copy_virt = ioremap(fb_copy_phys, fb_copy_size);
 
