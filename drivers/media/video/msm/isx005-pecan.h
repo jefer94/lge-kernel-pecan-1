@@ -143,6 +143,14 @@ enum isx005_wb_type {
 	CAMERA_WB_MAX_PLUS_1
 };
 
+enum isx005_antibanding_type {
+	CAMERA_ANTIBANDING_OFF,
+	CAMERA_ANTIBANDING_60HZ,
+	CAMERA_ANTIBANDING_50HZ,
+	CAMERA_ANTIBANDING_AUTO,
+	CAMERA_MAX_ANTIBANDING,
+};
+
 /* Enum Type for different ISO Mode supported */
 enum isx005_iso_value {
 	CAMERA_ISO_AUTO = 0,

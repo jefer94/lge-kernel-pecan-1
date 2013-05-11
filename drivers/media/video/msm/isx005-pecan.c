@@ -715,6 +715,58 @@ static int isx005_set_wb(int mode)
 	return rc;
 }
 
+static int isx005_set_antibanding(int mode)
+{
+	int rc;
+
+	switch (mode) {
+	case CAMERA_ANTIBANDING_OFF:
+		rc = isx005_i2c_write(isx005_client->addr, 0x4001, 0x00,
+			BYTE_LEN);
+		if (rc < 0)
+			return rc;
+
+		break;
+
+	case CAMERA_ANTIBANDING_60HZ:
+		rc = isx005_i2c_write(isx005_client->addr, 0x4001, 0x04,
+			BYTE_LEN);
+		if (rc < 0)
+			return rc;
+
+		break;
+
+	case CAMERA_ANTIBANDING_50HZ:
+		rc = isx005_i2c_write(isx005_client->addr, 0x4001, 0x03,
+			BYTE_LEN);
+		if (rc < 0)
+			return rc;
+
+		break;
+
+	case CAMERA_ANTIBANDING_AUTO:
+		rc = isx005_i2c_write(isx005_client->addr, 0x4001, 0x00,
+			BYTE_LEN);
+		if (rc < 0)
+			return rc;
+
+		break;
+
+	case CAMERA_MAX_ANTIBANDING:
+		rc = isx005_i2c_write(isx005_client->addr, 0x4001, 0x04,
+			BYTE_LEN);
+		if (rc < 0)
+			return rc;
+
+		break;
+
+	default:
+		return -EINVAL;
+	}
+
+	return rc;
+}
+
 /* ISO register setting */
 static int isx005_set_iso(int iso)
 {
@@ -1111,7 +1163,7 @@ int isx005_sensor_config(void __user *argp)
  }
 
 	case CFG_SET_ANTIBANDING: /* not support */
-	 rc = 0;
+	 rc = isx005_set_antibanding(cfg_data.mode);
 		break;
 
 	case CFG_SET_ISO: {
