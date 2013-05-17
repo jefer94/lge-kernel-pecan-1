@@ -55,14 +55,6 @@ obj-$(CONFIG_ARCH_MSM8960) += msm_dss_io_8960.o
 
 # EBI2
 obj-$(CONFIG_FB_MSM_EBI2) += ebi2_lcd.o
-ifneq ($(CONFIG_MACH_MSM7X27_PECAN),y) # we don't use this
-obj-$(CONFIG_FB_MSM_EBI2) += ebi2_host.o
-endif
-obj-$(CONFIG_FB_MSM_EBI2_EPSON_S1D_QVGA_PANEL) += ebi2_epson_s1d_qvga.o
-
-obj-$(CONFIG_FB_MSM_EBI2_TMD_QVGA_EPSON_QCIF) += ebi2_tmd20.o
-obj-$(CONFIG_FB_MSM_EBI2_TMD_QVGA_EPSON_QCIF) += ebi2_l2f.o
-obj-$(CONFIG_FB_MSM_EBI2_TOVIS_QVGA) += ebi2_tovis.o
 
 # LCDC
 obj-$(CONFIG_FB_MSM_LCDC) += lcdc.o
@@ -179,17 +171,15 @@ obj-$(CONFIG_FB_MSM_EXTMDDI_SVGA) += mddi_ext_lcd.o
 obj-$(CONFIG_FB_MSM_WRITEBACK_MSM_PANEL) += mdp4_wfd_writeback_panel.o
 obj-$(CONFIG_FB_MSM_WRITEBACK_MSM_PANEL) += mdp4_wfd_writeback.o
 obj-$(CONFIG_FB_MSM_WRITEBACK_MSM_PANEL) += mdp4_overlay_writeback.o
-
-obj-$(CONFIG_MSM_VIDC_1080P) += vidc/
-obj-$(CONFIG_MSM_VIDC_720P) += vidc/
 else
-ifneq ($(CONFIG_MACH_MSM7X27_PECAN),y) # we don't use this
 obj-$(CONFIG_FB_MSM_EBI2) += ebi2_host.o
-endif
 obj-$(CONFIG_FB_MSM_EBI2) += ebi2_lcd.o
 obj-y += msm_fb_panel.o
 obj-$(CONFIG_FB_MSM_EBI2_EPSON_S1D_QVGA_PANEL) += ebi2_epson_s1d_qvga.o
 endif
+
+obj-$(CONFIG_MSM_VIDC_1080P) += vidc/
+obj-$(CONFIG_MSM_VIDC_720P) += vidc/
 
 clean:
 	rm *.o .*cmd
