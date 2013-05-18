@@ -273,6 +273,10 @@ int mdp_dsi_video_off(struct platform_device *pdev)
 	return ret;
 }
 
+void mdp_dma_video_vsync_init(int cndx)
+{
+}
+
 void mdp_dma_video_vsync_ctrl(int enable)
 {
 	unsigned long flag;

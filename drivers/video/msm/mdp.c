@@ -1436,6 +1436,7 @@ void mdp_enable_irq(uint32 term)
 	spin_unlock_irqrestore(&mdp_lock, irq_flags);
 }
 
+
 /*
  * mdp_disable_irq: can not be called from isr
  */
@@ -2692,6 +2693,7 @@ static int mdp_probe(struct platform_device *pdev)
 		mfd->hw_refresh = TRUE;
 		mfd->dma_fnc = mdp_dsi_video_update;
 		mfd->do_histogram = mdp_do_histogram;
+                mfd->vsync_init = mdp_dma_video_vsync_init;
 		mfd->vsync_ctrl = mdp_dma_video_vsync_ctrl;
 		mfd->vsync_show = mdp_dma_video_show_event;
 		if (mfd->panel_info.pdest == DISPLAY_1)
@@ -2802,6 +2804,7 @@ static int mdp_probe(struct platform_device *pdev)
 		}
 #else
 		mfd->dma = &dma2_data;
+                mfd->vsync_init = mdp_dma_lcdc_vsync_init;
 		mfd->vsync_ctrl = mdp_dma_lcdc_vsync_ctrl;
 		mfd->vsync_show = mdp_dma_lcdc_show_event;
 		spin_lock_irqsave(&mdp_spin_lock, flag);

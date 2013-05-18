@@ -858,6 +858,8 @@ static inline int mdp_bus_scale_update_request(uint32_t index)
 	return 0;
 }
 #endif
+void mdp_dma_lcdc_vsync_init(int cndx);
+void mdp_dma_video_vsync_init(int cndx);
 void mdp_dma_vsync_ctrl(int enable);
 void mdp_dma_video_vsync_ctrl(int enable);
 void mdp_dma_lcdc_vsync_ctrl(int enable);
