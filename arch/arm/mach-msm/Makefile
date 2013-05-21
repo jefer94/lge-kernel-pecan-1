@@ -273,7 +273,10 @@ obj-$(CONFIG_MSM_XO) += msm_xo.o
 obj-$(CONFIG_MSM_BUS_SCALING) += msm_bus/
 obj-$(CONFIG_MSM_BUSPM_DEV) += msm-buspm-dev.o
 
-obj-$(CONFIG_MSM_IOMMU)		+= iommu.o iommu_dev.o devices-iommu.o iommu_domains.o
+obj-$(CONFIG_MSM_IOMMU)	+= iommu.o iommu_dev.o devices-iommu.o iommu_domains.o
+ifdef CONFIG_OF
+obj-$(CONFIG_MSM_IOMMU)	+= iommu-v2.o iommu_dev-v2.o iommu_pagetable.o
+endif
 obj-$(CONFIG_MSM_EVENT_TIMER)		+= event_timer.o
 
 ifdef CONFIG_VCM
