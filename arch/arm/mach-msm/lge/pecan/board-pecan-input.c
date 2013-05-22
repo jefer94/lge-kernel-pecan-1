@@ -356,7 +356,7 @@ static int Accel_Proximity_Ecompass_power_save(void)
 
 		Accel_Proximity_Ecompass_power_save_on = true;
 	}
-	
+
 	return rc;
 }
 
@@ -403,7 +403,7 @@ struct kr3dh_platform_data kr3dh_data = {
 	.negate_z = 0,
 
 	.irq_pin = ACCEL_GPIO_INT,
-	
+
 	.power_on = accel_power_on,
 	.power_off = accel_power_off,
 	.kr_init = kr_init,
@@ -539,4 +539,3 @@ void __init lge_add_input_devices(void)
 	lge_add_gpio_i2c_device(pecan_init_i2c_prox_ecom);
 	lge_add_gpio_i2c_device(pecan_init_i2c_acceleration);
 }
-

@@ -29,6 +29,45 @@ static struct msm_panel_common_pdata mdp_pdata = {
 	.mdp_rev = MDP_REV_30,
 };
 
+#define REGULATOR_OP(name, op, level)					\
+	do {								\
+	  vreg = regulator_get(0, name);				\
+	  regulator_set_voltage(vreg, level, level);			\
+	  if (regulator_##op(vreg))					\
+	    printk(KERN_ERR "%s: %s vreg operation failed \n",		\
+	      (regulator_##op == regulator_enable) ? "regulator_enable"	\
+	        : "regulator_disable", name);				\
+	} while (0)
+
+static char *msm_fb_vreg[] = {
+	"gp1",
+	"gp2",
+};
+
+static int mddi_power_save_on;
+static int ebi2_tovis_power_save(int on)
+{
+	struct regulator *vreg;	
+	int flag_on = !!on;
+
+	printk(KERN_INFO "%s: on=%d\n", __func__, flag_on);
+
+	if (mddi_power_save_on == flag_on)
+		return 0;
+
+	mddi_power_save_on = flag_on;
+
+	if (on) {
+		//REGULATOR_OP(msm_fb_vreg[0], enable, 1800000);
+		REGULATOR_OP(msm_fb_vreg[1], enable, 2800000);	
+	} else{
+		//REGULATOR_OP(msm_fb_vreg[0], disable, 0);
+		REGULATOR_OP(msm_fb_vreg[1], disable, 2800000);
+	}
+	return 0;
+}
+
+
 static void __init msm_fb_add_devices(void)
 {
 	// pecan
@@ -36,80 +75,6 @@ static void __init msm_fb_add_devices(void)
 	msm_fb_register_device("ebi2", 0);
 		msm_fb_register_device("pmdh", 0);
 }
-
-/* Use pmic_backlight function as power save function, munyoung.hwang@lge.com */
-static int mddi_power_save_on;
-static int ebi2_tovis_power_save(int on)
-{
-	int rc = 0;
-	static struct regulator *vreg_gp1;
-	static struct regulator *vreg_gp2;
-
-	if (!mddi_power_save_on) {
-		vreg_gp1 = regulator_get(0, "gp1");
-		if (IS_ERR_OR_NULL(vreg_gp1)) {
-			pr_err("could not get vreg_gp1, rc = %ld\n",
-				PTR_ERR(vreg_gp1));
-			return -ENODEV;
-		}
-
-		vreg_gp2 = regulator_get(0, "gp2");
-		if (IS_ERR_OR_NULL(vreg_gp2)) {
-			pr_err("could not get vreg_gp2, rc = %ld\n",
-				PTR_ERR(vreg_gp2));
-			regulator_put(vreg_gp1);
-			return -ENODEV;
-		}
-
-		rc = regulator_set_voltage(vreg_gp1, 1800000, 1800000);
-		if (rc) {
-			pr_err("set_voltage vreg_gp1 failed, rc=%d\n", rc);
-			regulator_put(vreg_gp1);
-			regulator_put(vreg_gp2);
-			return -EINVAL;
-		}
-
-		rc = regulator_set_voltage(vreg_gp2, 2800000, 2800000);
-		if (rc) {
-			pr_err("set_voltage vreg_gp2 failed, rc=%d\n", rc);
-			regulator_put(vreg_gp1);
-			regulator_put(vreg_gp2);
-			return -EINVAL;
-		}
-
-		mddi_power_save_on = true;
-	}
-
-
-
-	if (on) {
-		rc = regulator_enable(vreg_gp1);
-		if (rc) {
-			pr_err("enable vreg_gp1 failed, rc=%d\n", rc);
-			return -ENODEV;
-		}
-		rc = regulator_enable(vreg_gp2);
-		if (rc) {
-			pr_err("enable vreg_gp2 failed, rc=%d\n", rc);
-			return -ENODEV;
-		}
-	}
-	else {
-		rc = regulator_disable(vreg_gp1);
-		if (rc) {
-			pr_err("disable vreg_gp1 failed, rc=%d\n", rc);
-			return -ENODEV;
-		}
-		rc = regulator_disable(vreg_gp2);
-		if (rc) {
-			pr_err("disable vreg_gp2 failed, rc=%d\n", rc);
-			return -ENODEV;
-		}
-	}
-
-	return rc;
-}
-
 
 // kurze-pecan
 static struct msm_panel_ilitek_pdata ebi2_tovis_panel_data = {
