@@ -68,6 +68,14 @@ obj-$(CONFIG_TOUCHSCREEN_WM97XX_ZYLONITE)	+= zylonite-wm97xx.o
 obj-$(CONFIG_TOUCHSCREEN_W90X900)	+= w90p910_ts.o
 obj-$(CONFIG_TOUCHSCREEN_TPS6507X)	+= tps6507x-ts.o
 obj-$(CONFIG_TOUCHSCREEN_MSM_LEGACY)		+= msm_touch.o
+<<<<<<< HEAD
+=======
+#obj-$(CONFIG_TOUCHSCREEN_MCS6000)	+= mcs6000_ts_gb.o
+#TODO: make this somehow seperete from p500 version
+obj-$(CONFIG_TOUCHSCREEN_MCS6000)	+= mcs6000_ts_pecan.o
+obj-$(CONFIG_TOUCHSCREEN_MCS7000)	+= mcs7000/
+obj-$(CONFIG_TOUCHSCREEN_MCS8000)	+= mcs8000_ts.o
+>>>>>>> c8bbf7a... Added new MCS7000 driver
 obj-$(CONFIG_TOUCHSCREEN_CY8C_TS)	+= cy8c_ts.o
 obj-$(CONFIG_TOUCHSCREEN_CYTTSP_I2C)       += cyttsp-i2c.o
 obj-$(CONFIG_TOUCHSCREEN_MCS6000)	+= mcs6000_ts.o
