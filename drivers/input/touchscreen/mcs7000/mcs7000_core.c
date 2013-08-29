@@ -144,6 +144,8 @@ static int mcs7000_i2c_probe(struct i2c_client *client, const struct i2c_device_
 	if(dev == NULL)
 		return -ENOMEM;
 
+	dev->client = client;
+
 	i2c_set_clientdata(client, dev);
 
 	dev->input = input_allocate_device();
@@ -295,4 +297,4 @@ module_init(mcs7000_init);
 module_exit(mcs7000_exit);
 
 MODULE_DESCRIPTION("Melfas MCS7000 Touchscreen driver");
-MODULE_LICENSE("GLPv2");
+MODULE_LICENSE("GPLv2");
