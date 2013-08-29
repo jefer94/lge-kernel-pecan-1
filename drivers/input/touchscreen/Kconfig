@@ -662,13 +662,6 @@ config TOUCHSCREEN_MXT140
 	  module will be called mXT140.	
 #LGE_DEV_PORTING UNIVA_S
 
-config TOUCHSCREEN_MCS7000
-	default n
-	tristate "MCS7000 touchscreens"
-	depends on I2C
-	help
-	  Say Y here if you have a MCS7000 touchscreen.
-
 config TOUCHSCREEN_MCS8000
 	default n
 	bool "MCS8000 touchscreens"
@@ -715,5 +708,7 @@ config TOUCHSCREEN_MCS6000
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called tsc2007.
+
+source "drivers/input/touchscreen/mcs7000/Kconfig"
 
 endif
