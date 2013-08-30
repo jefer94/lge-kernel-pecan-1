@@ -20,6 +20,13 @@
 
 #define SAMPLE_RATE_HZ		100
 
+/* Auto-select input protocol for modern kernels */
+#ifdef ABS_MT_SLOT
+# define INPUT_PROTOCOL_B
+#else
+# define INPUT_PROTOCOL_A
+#endif
+
 static irqreturn_t mcs7000_irq_handler(int irq, void *handle)
 {
 	struct mcs7000_device	*dev		= handle;
@@ -33,6 +40,66 @@ static irqreturn_t mcs7000_irq_handler(int irq, void *handle)
 	return IRQ_HANDLED;
 }
 
+static void mcs7000_input_report_touch(struct mcs7000_device *dev, int slot, int x, int y, int z)
+{
+#ifdef INPUT_PROTOCOL_B
+	if(x != dev->old_x[slot] || y != dev->old_y[slot] || z != dev->old_z[slot]) {
+#endif
+		printk(KERN_DEBUG "%s: Touch event, slot %i, X = %i, Y = %i, Z = %i.\n",
+			__FUNCTION__, slot, x, y, z);
+
+#ifdef INPUT_PROTOCOL_B
+		input_report_abs(dev->input, ABS_MT_SLOT, slot);
+		input_report_abs(dev->input, ABS_MT_TRACKING_ID, slot);
+
+		if(x != dev->old_x[slot]) {
+			input_report_abs(dev->input, ABS_MT_POSITION_X, x);
+			dev->old_x[slot] = x;
+		}
+		if(y != dev->old_y[slot]) {
+			input_report_abs(dev->input, ABS_MT_POSITION_Y, y);
+			dev->old_y[slot] = y;
+		}
+		if(z != dev->old_z[slot]) {
+			input_report_abs(dev->input, ABS_MT_PRESSURE, z);
+			dev->old_z[slot] = z;
+		}
+
+		input_sync(dev->input);
+
+#endif
+#ifdef INPUT_PROTOCOL_A
+		input_report_abs(dev->input, ABS_MT_POSITION_X, x);
+		input_report_abs(dev->input, ABS_MT_POSITION_Y, y);
+		input_report_abs(dev->input, ABS_MT_PRESSURE, z);
+		input_mt_sync(dev->input);
+
+		dev->old_x[slot] = x;
+		dev->old_y[slot] = y;
+		dev->old_z[slot] = z;
+#endif
+
+		dev->old_touch_valid[slot] = 1;
+#ifdef INPUT_PROTOCOL_B
+	}
+#endif
+}
+
+#ifdef INPUT_PROTOCOL_B
+static void mcs7000_input_report_untouch(struct mcs7000_device *dev, int slot)
+{
+	if(dev->old_touch_valid[slot]) {
+		printk(KERN_DEBUG "%s: Touch release event, slot %i.\n", __FUNCTION__, slot);
+
+		input_report_abs(dev->input, ABS_MT_SLOT, slot);
+		input_report_abs(dev->input, ABS_MT_TRACKING_ID, -1);
+		input_sync(dev->input);
+		dev->old_x[slot] = dev->old_y[slot] = dev->old_z[slot] = -1;
+		dev->old_touch_valid[slot] = 0;
+	}
+}
+#endif
+
 static void mcs7000_work_handler(struct work_struct *work)
 {
 	struct mcs7000_device	*dev;
@@ -40,11 +107,9 @@ static void mcs7000_work_handler(struct work_struct *work)
 	int			pressed;
 	char			i2c_command;
 	unsigned char		response_buffer[MCS7000_INPUT_INFO_LENGTH];
-	int			x1, y1, z1;
-	int			x2, y2, z2;
+	int			x[MAX_TOUCH_POINTS], y[MAX_TOUCH_POINTS], z[MAX_TOUCH_POINTS];
 	int			input_event;
-	static int		old_x1=-1, old_y1=-1, old_z1=-1;
-	static int		old_x2=-1, old_y2=-1, old_z2=-1;
+	int			i;
 
 	dev = container_of(container_of(work, struct delayed_work, work), struct mcs7000_device, work);
 
@@ -64,40 +129,34 @@ static void mcs7000_work_handler(struct work_struct *work)
 
 	input_event = response_buffer[0] & 0x0f;
 
-	x1 = response_buffer[2] | ((response_buffer[1] & 0xf0) << 4);
-	y1 = response_buffer[3] | ((response_buffer[1] & 0x0f) << 8);
-	z1 = response_buffer[4];
-	x2 = response_buffer[6] | ((response_buffer[5] & 0xf0) << 4);
-	y2 = response_buffer[7] | ((response_buffer[5] & 0x0f) << 8);
-	z2 = response_buffer[8];
+	printk(KERN_DEBUG "%s: Pressed: %i, Input Event: %i\n", __FUNCTION__, pressed, input_event);
 
-	printk(KERN_DEBUG "%s: Pressed: %i, Input Event: %i, X1: %i, Y1: %i, Z1: %i, X2: %i, Y2: %i, Z2: %i.\n",
-		__FUNCTION__, pressed, input_event, x1, y1, z1, x2, y2, z2);
+	for(i = 0; i < MAX_TOUCH_POINTS; i++) {
+		x[i] = response_buffer[(i*4)+2] | ((response_buffer[(i*4)+1] & 0xf0) << 4);
+		y[i] = response_buffer[(i*4)+3] | ((response_buffer[(i*4)+1] & 0x0f) << 8);
+		z[i] = response_buffer[(i*4)+4];
+	}
 
 	if(pressed) {
 		switch(input_event) {
 			case MCS7000_INPUT_NOT_TOUCHED:
+				/* Do nothing */
 				break;
 			case MCS7000_INPUT_MULTI_POINT_TOUCH:
-				input_report_abs(dev->input, ABS_MT_TOUCH_MAJOR, z2);
-				input_report_abs(dev->input, ABS_MT_PRESSURE, z2);
-				input_report_abs(dev->input, ABS_MT_POSITION_X, x2);
-				input_report_abs(dev->input, ABS_MT_POSITION_Y, y2);
-				input_mt_sync(dev->input);
-				old_x2 = x2;
-				old_y2 = y2;
-				old_z2 = z2;
-				/* fall-through */
-			case MCS7000_INPUT_SINGLE_POINT_TOUCH:
-				input_report_abs(dev->input, ABS_MT_TOUCH_MAJOR, z1);
-				input_report_abs(dev->input, ABS_MT_PRESSURE, z1);
-				input_report_abs(dev->input, ABS_MT_POSITION_X, x1);
-				input_report_abs(dev->input, ABS_MT_POSITION_Y, y1);
-				input_mt_sync(dev->input);
+				for(i = 0; i < MAX_TOUCH_POINTS; i++)
+					mcs7000_input_report_touch(dev, i, x[i], y[i], z[i]);
+#ifdef INPUT_PROTOCOL_A
 				input_sync(dev->input);
-				old_x1 = x1;
-				old_y1 = y1;
-				old_z1 = z1;
+#endif
+				break;
+			case MCS7000_INPUT_SINGLE_POINT_TOUCH:
+				mcs7000_input_report_touch(dev, 0, x[0], y[0], z[0]);
+#ifdef INPUT_PROTOCOL_B
+				for(i = 1; i < MAX_TOUCH_POINTS; i++)
+					if(dev->old_touch_valid[i]) mcs7000_input_report_untouch(dev, i);
+#else
+				input_sync(dev->input);
+#endif
 				break;
 			default:
 				printk(KERN_WARNING "%s: Unknown input event %i.\n", __FUNCTION__, input_event);
@@ -106,29 +165,22 @@ static void mcs7000_work_handler(struct work_struct *work)
 	}
 	else {
 		switch(input_event) {
+#ifdef INPUT_PROTOCOL_A
 			case MCS7000_INPUT_NOT_TOUCHED:
-				break;
-			case MCS7000_INPUT_MULTI_POINT_TOUCH:
-				if(old_z2 >= 0 && old_y2 >= 0 && old_x2 >= 0) {
-					input_report_abs(dev->input, ABS_MT_TOUCH_MAJOR, 0);
-					input_report_abs(dev->input, ABS_MT_PRESSURE, old_z2);
-					input_report_abs(dev->input, ABS_MT_POSITION_X, old_x2);
-					input_report_abs(dev->input, ABS_MT_POSITION_Y, old_y2);
-					input_mt_sync(dev->input);
-					old_x2 = old_y2 = old_z2 = -1;
-				}
-				/* fall-through */
 			case MCS7000_INPUT_SINGLE_POINT_TOUCH:
-				if(old_z1 >= 0 && old_y1 >= 0 && old_x1 >= 0) {
-					input_report_abs(dev->input, ABS_MT_TOUCH_MAJOR, 0);
-					input_report_abs(dev->input, ABS_MT_PRESSURE, old_z1);
-					input_report_abs(dev->input, ABS_MT_POSITION_X, old_x1);
-					input_report_abs(dev->input, ABS_MT_POSITION_Y, old_y1);
-					input_mt_sync(dev->input);
-					input_sync(dev->input);
-					old_x1 = old_y1 = old_z1 = -1;
+			case MCS7000_INPUT_MULTI_POINT_TOUCH:
+				input_mt_sync(dev->input);
+				input_sync(dev->input);
+				break;
+#else
+			case MCS7000_INPUT_NOT_TOUCHED:
+			case MCS7000_INPUT_SINGLE_POINT_TOUCH:
+			case MCS7000_INPUT_MULTI_POINT_TOUCH:
+				for(i = 0; i < MAX_TOUCH_POINTS; i++) {
+					mcs7000_input_report_untouch(dev, i);
 				}
 				break;
+#endif
 			default:
 				printk(KERN_WARNING "%s: Unknown input event %i.\n", __FUNCTION__, input_event);
 				break;
@@ -148,41 +200,20 @@ _schedule_next_run:
 
 void mcs7000_power_on(struct mcs7000_device *dev)
 {
-#if 0
-	unsigned char int_command[] = {MCS7000_CMD_INT_CONTROL, 0x01};
-#endif
 	dev->platform->power_on(dev);
-
-#if 0
-	if(i2c_master_send(dev->client, int_command, 2) < 0) {
-		printk(KERN_ERR "%s: Error enabling IRQ. Device may not work correctly.\n", __FUNCTION__);
-	}
-#endif
-
 	enable_irq(dev->client->irq);
 }
 
 void mcs7000_power_off(struct mcs7000_device *dev)
 {
-#if 0
-	unsigned char int_command[] = {MCS7000_CMD_INT_CONTROL, 0x00};
-#endif
-
 	dev->platform->power_off(dev);
-
-#if 0
-	if(i2c_master_send(dev->client, int_command, 2) < 0) {
-		printk(KERN_ERR "%s: Error disabling IRQ. Device may not work correctly.\n", __FUNCTION__);
-	}
-#endif
-
 	disable_irq(dev->client->irq);
 }
 
 static int mcs7000_i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
 	struct mcs7000_device	*dev;
-	int			err;
+	int			err, i;
 
 	if(!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
 		err = -ENODEV;
@@ -198,6 +229,13 @@ static int mcs7000_i2c_probe(struct i2c_client *client, const struct i2c_device_
 	}
 
 	dev->client = client;
+
+	for(i = 0; i < MAX_TOUCH_POINTS; i++) {
+		dev->old_x[i] = -1;
+		dev->old_y[i] = -1;
+		dev->old_z[i] = -1;
+		dev->old_touch_valid[i] = 0;
+	}
 
 	i2c_set_clientdata(client, dev);
 
@@ -216,9 +254,7 @@ static int mcs7000_i2c_probe(struct i2c_client *client, const struct i2c_device_
 	}
 
 	input_set_abs_params(dev->input, ABS_MT_PRESSURE, 0, 255, 0, 0);
-	input_set_abs_params(dev->input, ABS_MT_TOUCH_MINOR, 0, 15, 0, 0);
-	input_set_abs_params(dev->input, ABS_MT_TOUCH_MAJOR, 0, 15, 0, 0);
-	input_set_abs_params(dev->input, ABS_MT_TRACKING_ID, 0, 9, 0, 0);
+	input_set_abs_params(dev->input, ABS_MT_TRACKING_ID, 0, 1, 0, 0);
 
 #ifdef CONFIG_MCS7000_PECAN
 	dev->platform = mcs7000_pecan_get_platform();
