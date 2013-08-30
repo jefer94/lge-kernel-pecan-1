@@ -14,12 +14,28 @@
 #include <linux/input.h>
 #include <linux/interrupt.h>
 #include <linux/delay.h>
+#include <linux/workqueue.h>
 
 #include "mcs7000.h"
+
+#define SAMPLE_RATE_HZ		100
 
 static irqreturn_t mcs7000_irq_handler(int irq, void *handle)
 {
 	struct mcs7000_device	*dev		= handle;
+
+	if(dev->platform->irq_read_line(dev) == 0) {
+		printk(KERN_INFO "%s: Scheduling work to do.\n", __FUNCTION__);
+		disable_irq_nosync(irq);
+		queue_delayed_work(dev->queue, &dev->work, msecs_to_jiffies(HZ/SAMPLE_RATE_HZ));
+	}
+
+	return IRQ_HANDLED;
+}
+
+static void mcs7000_work_handler(struct work_struct *work)
+{
+	struct mcs7000_device	*dev;
 	int			irq_status;
 	int			pressed;
 	char			i2c_command;
@@ -30,27 +46,33 @@ static irqreturn_t mcs7000_irq_handler(int irq, void *handle)
 	static int		old_x1=-1, old_y1=-1, old_z1=-1;
 	static int		old_x2=-1, old_y2=-1, old_z2=-1;
 
+	dev = container_of(container_of(work, struct delayed_work, work), struct mcs7000_device, work);
+
 	irq_status = dev->platform->irq_read_line(dev);
 	pressed = !irq_status;
 
 	i2c_command = MCS7000_CMD_INPUT_INFO;
 	if(i2c_master_send(dev->client, &i2c_command, 1) < 0) {
 		printk(KERN_ERR "%s: Error sending input info command.\n", __FUNCTION__);
-		return IRQ_HANDLED;
+		goto _schedule_next_run;
 	}
 
 	if(i2c_master_recv(dev->client, response_buffer, MCS7000_INPUT_INFO_LENGTH) < 0) {
 		printk(KERN_ERR "%s: Error receiving input info data.\n", __FUNCTION__);
-		return IRQ_HANDLED;
+		goto _schedule_next_run;
 	}
 
 	input_event = response_buffer[0] & 0x0f;
 
 	x1 = response_buffer[2] | ((response_buffer[1] & 0xf0) << 4);
 	y1 = response_buffer[3] | ((response_buffer[1] & 0x0f) << 8);
-	z1 = z2 = response_buffer[4];
+	z1 = response_buffer[4];
 	x2 = response_buffer[6] | ((response_buffer[5] & 0xf0) << 4);
 	y2 = response_buffer[7] | ((response_buffer[5] & 0x0f) << 8);
+	z2 = response_buffer[8];
+
+	printk(KERN_DEBUG "%s: Pressed: %i, Input Event: %i, X1: %i, Y1: %i, Z1: %i, X2: %i, Y2: %i, Z2: %i.\n",
+		__FUNCTION__, pressed, input_event, x1, y1, z1, x2, y2, z2);
 
 	if(pressed) {
 		switch(input_event) {
@@ -115,18 +137,45 @@ static irqreturn_t mcs7000_irq_handler(int irq, void *handle)
 
 	dev->platform->input_event(dev, response_buffer);
 
-	return IRQ_HANDLED;
+_schedule_next_run:
+	if(pressed) {
+		queue_delayed_work(dev->queue, &dev->work, msecs_to_jiffies(HZ/SAMPLE_RATE_HZ));
+	}
+	else {
+		enable_irq(dev->client->irq);
+	}
 }
 
 void mcs7000_power_on(struct mcs7000_device *dev)
 {
+#if 0
+	unsigned char int_command[] = {MCS7000_CMD_INT_CONTROL, 0x01};
+#endif
 	dev->platform->power_on(dev);
+
+#if 0
+	if(i2c_master_send(dev->client, int_command, 2) < 0) {
+		printk(KERN_ERR "%s: Error enabling IRQ. Device may not work correctly.\n", __FUNCTION__);
+	}
+#endif
+
 	enable_irq(dev->client->irq);
 }
 
 void mcs7000_power_off(struct mcs7000_device *dev)
 {
+#if 0
+	unsigned char int_command[] = {MCS7000_CMD_INT_CONTROL, 0x00};
+#endif
+
 	dev->platform->power_off(dev);
+
+#if 0
+	if(i2c_master_send(dev->client, int_command, 2) < 0) {
+		printk(KERN_ERR "%s: Error disabling IRQ. Device may not work correctly.\n", __FUNCTION__);
+	}
+#endif
+
 	disable_irq(dev->client->irq);
 }
 
@@ -137,12 +186,16 @@ static int mcs7000_i2c_probe(struct i2c_client *client, const struct i2c_device_
 
 	if(!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
 		err = -ENODEV;
+		printk(KERN_ERR "%s: I2C device doesn't report needed I2C_FUNC_I2C functionality\n", __FUNCTION__);
 		goto _cleanup_check_functionality;
 	}
 
-	dev = kzalloc(sizeof(*dev), GFP_KERNEL);
-	if(dev == NULL)
-		return -ENOMEM;
+	dev = kzalloc(sizeof(struct mcs7000_device), GFP_KERNEL);
+	if(dev == NULL) {
+		printk(KERN_ERR "%s: Not enough memory.\n", __FUNCTION__);
+		err = -ENOMEM;
+		goto _cleanup_alloc_device;
+	}
 
 	dev->client = client;
 
@@ -154,7 +207,7 @@ static int mcs7000_i2c_probe(struct i2c_client *client, const struct i2c_device_
 		goto _cleanup_input_allocate;
 	}
 
-	dev->input->name = "mcs7000";
+	dev->input->name = "touch_mcs7000";
 
 	err = input_register_device(dev->input);
 	if(err < 0) {
@@ -176,8 +229,17 @@ static int mcs7000_i2c_probe(struct i2c_client *client, const struct i2c_device_
 		goto _cleanup_platform_probe;
 	}
 
+	dev->queue = create_singlethread_workqueue("mcs7000-workqueue");
+	if(!dev->queue) {
+		printk(KERN_ERR "%s: Cannot create work queue.\n", __FUNCTION__);
+		err = -ENOMEM;
+		goto _cleanup_create_workqueue;
+	}
+
+	INIT_DELAYED_WORK(&dev->work, mcs7000_work_handler);
+
 	err = request_threaded_irq(client->irq, NULL, mcs7000_irq_handler,
-		IRQF_TRIGGER_LOW | IRQF_TRIGGER_HIGH, "mcs7000", dev);
+		IRQF_TRIGGER_LOW | IRQF_ONESHOT, "mcs7000", dev);
 	if(err < 0) {
 		printk(KERN_ERR "%s: Error requesting IRQ.\n", __FUNCTION__);
 		goto _cleanup_request_irq;
@@ -191,7 +253,10 @@ static int mcs7000_i2c_probe(struct i2c_client *client, const struct i2c_device_
 
 	return 0;
 
-_cleanup_request_irq:
+_cleanup_create_workqueue:
+	free_irq(client->irq, dev);
+
+_cleanup_request_irq: 
 	dev->platform->remove(dev);
 
 _cleanup_platform_probe:
@@ -204,6 +269,7 @@ _cleanup_input_allocate:
 	kfree(dev);
 	i2c_set_clientdata(client, NULL);
 
+_cleanup_alloc_device:
 _cleanup_check_functionality:
 	return err;
 }
@@ -215,6 +281,8 @@ static int mcs7000_i2c_remove(struct i2c_client *client)
 	dev = i2c_get_clientdata(client);
 
 	mcs7000_power_off(dev);
+
+	destroy_workqueue(dev->queue);
 
 	dev->platform->remove(dev);
 
