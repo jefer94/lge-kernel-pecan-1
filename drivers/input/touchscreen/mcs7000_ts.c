@@ -157,7 +157,6 @@ enum{
 
 void Send_Touch( unsigned int x, unsigned int y)
 {
-<<<<<<< HEAD
 	input_report_abs(mcs7000_ts_dev.input_dev, ABS_MT_PRESSURE, 1);
 	input_report_abs(mcs7000_ts_dev.input_dev, ABS_MT_TOUCH_MAJOR, 1);
 	input_report_abs(mcs7000_ts_dev.input_dev, ABS_MT_POSITION_X, x);
@@ -170,32 +169,6 @@ void Send_Touch( unsigned int x, unsigned int y)
 	input_report_abs(mcs7000_ts_dev.input_dev, ABS_MT_POSITION_Y, y);
 	input_mt_sync(mcs7000_ts_dev.input_dev);
 	input_sync(mcs7000_ts_dev.input_dev);
-=======
-	if (mcs7000_ext_ts == (void *)NULL) {
-		printk(KERN_ERR "mcs7000 not proved\n");
-		return;
-	}
-
-#ifdef LG_FW_MULTI_TOUCH
-	input_report_abs(mcs7000_ext_ts->input_dev, ABS_MT_TOUCH_MAJOR, 1);
-	input_report_abs(mcs7000_ext_ts->input_dev, ABS_MT_POSITION_X, x);
-	input_report_abs(mcs7000_ext_ts->input_dev, ABS_MT_POSITION_Y, y);
-	input_mt_sync(mcs7000_ext_ts->input_dev);
-	input_sync(mcs7000_ext_ts->input_dev);
-
-	input_report_abs(mcs7000_ext_ts->input_dev, ABS_MT_TOUCH_MAJOR, 0);
-	input_report_abs(mcs7000_ext_ts->input_dev, ABS_MT_POSITION_X, x);
-	input_report_abs(mcs7000_ext_ts->input_dev, ABS_MT_POSITION_Y, y);
-	input_mt_sync(mcs7000_ext_ts->input_dev);
-	input_sync(mcs7000_ext_ts->input_dev);
-#else
-	mcs7000_ts_event_touch( x, y , mcs7000_ext_ts) ;
-	input_report_abs(mcs7000_ext_ts->input_dev, ABS_X, x);
-	input_report_abs(mcs7000_ext_ts->input_dev, ABS_Y, y);
-	input_report_key(mcs7000_ext_ts->input_dev, BTN_TOUCH, 0);
-	input_sync(mcs7000_ext_ts->input_dev);
-#endif
->>>>>>> a1a76f2... add pressure sensor on touchscreen
 }
 EXPORT_SYMBOL(Send_Touch);
 
@@ -905,64 +878,8 @@ static int mcs7000_ts_probe(struct i2c_client *client, const struct i2c_device_i
 	dev->input_dev = mcs7000_ts_input;
 	DMSG("mcs7000 dev->num_irq is %d , dev->intr_gpio is %d\n", dev->num_irq,dev->intr_gpio);
 
-<<<<<<< HEAD
 	dev->client = client;
 	i2c_set_clientdata(client, dev);
-=======
-	/* disable int */
-//	ret = i2c_smbus_write_byte_data(ts->client, 0x1d, 0x00);
-//	if (ret < 0) {
-//		printk(KERN_ERR "mcs7000_ts_probe: i2c write failed\n");
-//		goto err_detect_failed;
-//	}
-
-	ts->input_dev = input_allocate_device();
-	if (ts->input_dev == NULL) {
-		ret = -ENOMEM;
-		printk(KERN_ERR "mcs7000_ts_probe: input device alloc failed\n");
-		goto err_input_dev_alloc_failed;
-	}
-	ts->input_dev->name = MCS7000_I2C_TS_NAME;
-
-	/* touch key function disable by younchan.kim,2010-09-24 */
-	set_bit(EV_SYN, ts->input_dev->evbit);
-	//set_bit(EV_KEY, ts->input_dev->evbit);
-	set_bit(EV_ABS, ts->input_dev->evbit);
-#ifdef LG_FW_MULTI_TOUCH
-	set_bit(ABS_MT_TOUCH_MAJOR, ts->input_dev->absbit);
-	/* copy form LS670 touch by younchan.kim
-	   LGE_CHANGE [dojip.kim@lge.com] 2010-09-23, android multi touch
-	 */
-	set_bit(ABS_MT_POSITION_X, ts->input_dev->absbit);
-	set_bit(ABS_MT_POSITION_Y, ts->input_dev->absbit);
-#else
-	set_bit(BTN_TOUCH, ts->input_dev->keybit);
-#endif
-/* touch key function disable by younchan.kim,2010-09-24 */
-/*
-#if defined(LG_FW_TOUCH_SOFT_KEY) 
-	set_bit(TOUCH_BACK, ts->input_dev->keybit);
-	set_bit(TOUCH_SEARCH, ts->input_dev->keybit);
-#else
-	set_bit(KEY_BACK, ts->input_dev->keybit);
-	set_bit(KEY_SEARCH, ts->input_dev->keybit);
-#endif
-*/
-#ifdef LG_FW_MULTI_TOUCH
-	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_X, pdata->ts_x_min, pdata->ts_x_max, 0, 0);
-	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_Y, pdata->ts_y_min, pdata->ts_y_max, 0, 0);
-#else	
-	input_set_abs_params(ts->input_dev, ABS_X, pdata->ts_x_min, pdata->ts_x_max, 0, 0);
-	input_set_abs_params(ts->input_dev, ABS_Y, pdata->ts_y_min, pdata->ts_y_max, 0, 0);
-#endif
-<<<<<<< HEAD
-	input_set_abs_params(mcs7000_ts_input, ABS_MT_PRESSURE, 0, 255, 0, 0);
-	input_set_abs_params(mcs7000_ts_input, ABS_MT_TOUCH_MINOR, 0, 15, 0, 0);
-	input_set_abs_params(mcs7000_ts_input, ABS_MT_TOUCH_MAJOR, 0, 15, 0, 0);
-	input_set_abs_params(mcs7000_ts_input, ABS_MT_TRACKING_ID, 0, 9, 0, 0);	
->>>>>>> a1a76f2... add pressure sensor on touchscreen
-=======
->>>>>>> parent of a1a76f2... add pressure sensor on touchscreen
 
 	if (!(err = i2c_check_functionality(client->adapter, I2C_FUNC_I2C))) {
 		printk(KERN_ERR "%s: fucntionality check failed\n",
@@ -1200,4 +1117,3 @@ module_exit(mcs7000_ts_exit);
 
 MODULE_DESCRIPTION("MELFAS MCS7000 Touchscreen Driver");
 MODULE_LICENSE("GPL");
-
