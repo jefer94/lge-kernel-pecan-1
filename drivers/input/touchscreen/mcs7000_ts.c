@@ -177,14 +177,12 @@ void Send_Touch( unsigned int x, unsigned int y)
 	}
 
 #ifdef LG_FW_MULTI_TOUCH
-	input_report_abs(mcs7000_ts_dev.input_dev, ABS_MT_PRESSURE, 1);
 	input_report_abs(mcs7000_ext_ts->input_dev, ABS_MT_TOUCH_MAJOR, 1);
 	input_report_abs(mcs7000_ext_ts->input_dev, ABS_MT_POSITION_X, x);
 	input_report_abs(mcs7000_ext_ts->input_dev, ABS_MT_POSITION_Y, y);
 	input_mt_sync(mcs7000_ext_ts->input_dev);
 	input_sync(mcs7000_ext_ts->input_dev);
-	
-	input_report_abs(mcs7000_ts_dev.input_dev, ABS_MT_PRESSURE, 0);
+
 	input_report_abs(mcs7000_ext_ts->input_dev, ABS_MT_TOUCH_MAJOR, 0);
 	input_report_abs(mcs7000_ext_ts->input_dev, ABS_MT_POSITION_X, x);
 	input_report_abs(mcs7000_ext_ts->input_dev, ABS_MT_POSITION_Y, y);
@@ -957,11 +955,14 @@ static int mcs7000_ts_probe(struct i2c_client *client, const struct i2c_device_i
 	input_set_abs_params(ts->input_dev, ABS_X, pdata->ts_x_min, pdata->ts_x_max, 0, 0);
 	input_set_abs_params(ts->input_dev, ABS_Y, pdata->ts_y_min, pdata->ts_y_max, 0, 0);
 #endif
+<<<<<<< HEAD
 	input_set_abs_params(mcs7000_ts_input, ABS_MT_PRESSURE, 0, 255, 0, 0);
 	input_set_abs_params(mcs7000_ts_input, ABS_MT_TOUCH_MINOR, 0, 15, 0, 0);
 	input_set_abs_params(mcs7000_ts_input, ABS_MT_TOUCH_MAJOR, 0, 15, 0, 0);
 	input_set_abs_params(mcs7000_ts_input, ABS_MT_TRACKING_ID, 0, 9, 0, 0);	
 >>>>>>> a1a76f2... add pressure sensor on touchscreen
+=======
+>>>>>>> parent of a1a76f2... add pressure sensor on touchscreen
 
 	if (!(err = i2c_check_functionality(client->adapter, I2C_FUNC_I2C))) {
 		printk(KERN_ERR "%s: fucntionality check failed\n",
