@@ -62,11 +62,6 @@ static int mcs7000_pecan_probe(struct mcs7000_device *dev)
 		goto _cleanup_gpio_direction;
 	}
 
-	set_bit(KEY_MENU, dev->input->keybit);
-	set_bit(KEY_HOME, dev->input->keybit);
-	set_bit(KEY_BACK, dev->input->keybit);
-	set_bit(KEY_SEARCH, dev->input->keybit);
-
 	input_set_abs_params(dev->input, ABS_MT_POSITION_X, pecan_data->touch_data->ts_x_min, pecan_data->touch_data->ts_x_max, 0, 0);
 	input_set_abs_params(dev->input, ABS_MT_POSITION_Y, pecan_data->touch_data->ts_y_min, pecan_data->touch_data->ts_y_max, 0, 0);
 	return 0;
@@ -130,19 +125,15 @@ static void mcs7000_pecan_report_key(struct mcs7000_device *dev, int key, int st
 
 	switch(key) {
 		case KEY_BACK_TOUCHED:
-			/*printk(KERN_DEBUG "%s: Back key status = %i.\n", __FUNCTION__, status);*/
 			input_key = KEY_BACK;
 			break;
 		case KEY_MENU_TOUCHED:
-			/*printk(KERN_DEBUG "%s: Menu key status = %i.\n", __FUNCTION__, status);*/
 			input_key = KEY_MENU;
 			break;
 		case KEY_HOME_TOUCHED:
-			/*printk(KERN_DEBUG "%s: Home key status = %i.\n", __FUNCTION__, status);*/
 			input_key = KEY_HOME;
 			break;
 		case KEY_SEARCH_TOUCHED:
-			/*printk(KERN_DEBUG "%s: Search key status = %i.\n", __FUNCTION__, status);*/
 			input_key = KEY_SEARCH;
 			break;
 		default:
@@ -150,7 +141,7 @@ static void mcs7000_pecan_report_key(struct mcs7000_device *dev, int key, int st
 			return;
 	}
 
-	input_event(dev->input, EV_KEY, input_key, status);
+	input_event(dev->input, EV_KEY, input_key, !!status);
 	input_sync(dev->input);
 }
 
@@ -166,20 +157,18 @@ static void mcs7000_pecan_input_event(struct mcs7000_device *dev, unsigned char 
 	int pressed = !irq_status;
 
 	int key = (response_buffer[0] & 0xf0) >> 4;
-	static int old_key = 0;
+	static int old_key = -1;
 
 	if(pressed) {
-		/*printk(KERN_DEBUG "%s: Screen is pressed key=%i, old_key=%i\n", __FUNCTION__, key, old_key);*/
-		if(key > 0 && key != old_key) {
+		if(key && key != old_key) {
 			if(old_key > 0) mcs7000_pecan_report_key(dev, old_key, 0);
 			mcs7000_pecan_report_key(dev, key, 1);
 			old_key = key;
 		}
 	}
 	else {
-		/*printk(KERN_DEBUG "%s: Screen is NOT pressed key=%i, old_key=%i\n", __FUNCTION__, key, old_key);*/
-		if(old_key) {
-			mcs7000_pecan_report_key(dev, old_key, 0);
+		if(key) {
+			mcs7000_pecan_report_key(dev, key, 0);
 			old_key = 0;
 		}
 	}

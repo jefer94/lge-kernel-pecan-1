@@ -45,13 +45,12 @@ static void mcs7000_input_report_touch(struct mcs7000_device *dev, int slot, int
 #ifdef INPUT_PROTOCOL_B
 	if(x != dev->old_x[slot] || y != dev->old_y[slot] || z != dev->old_z[slot]) {
 #endif
-/*		printk(KERN_DEBUG "%s: Touch event, slot %i, X = %i, Y = %i, Z = %i.\n",
-			__FUNCTION__, slot, x, y, z);*/
+		printk(KERN_DEBUG "%s: Touch event, slot %i, X = %i, Y = %i, Z = %i.\n",
+			__FUNCTION__, slot, x, y, z);
 
 #ifdef INPUT_PROTOCOL_B
 		input_report_abs(dev->input, ABS_MT_SLOT, slot);
 		input_report_abs(dev->input, ABS_MT_TRACKING_ID, slot);
-		input_report_abs(dev->input, ABS_MT_TOUCH_MAJOR, 9);
 
 		if(x != dev->old_x[slot]) {
 			input_report_abs(dev->input, ABS_MT_POSITION_X, x);
@@ -70,8 +69,6 @@ static void mcs7000_input_report_touch(struct mcs7000_device *dev, int slot, int
 
 #endif
 #ifdef INPUT_PROTOCOL_A
-		input_report_abs(dev->input, ABS_MT_TRACKING_ID, slot);
-		input_report_abs(dev->input, ABS_MT_TOUCH_MAJOR, 9);
 		input_report_abs(dev->input, ABS_MT_POSITION_X, x);
 		input_report_abs(dev->input, ABS_MT_POSITION_Y, y);
 		input_report_abs(dev->input, ABS_MT_PRESSURE, z);
@@ -92,7 +89,7 @@ static void mcs7000_input_report_touch(struct mcs7000_device *dev, int slot, int
 static void mcs7000_input_report_untouch(struct mcs7000_device *dev, int slot)
 {
 	if(dev->old_touch_valid[slot]) {
-/*		printk(KERN_DEBUG "%s: Touch release event, slot %i.\n", __FUNCTION__, slot);*/
+		printk(KERN_DEBUG "%s: Touch release event, slot %i.\n", __FUNCTION__, slot);
 
 		input_report_abs(dev->input, ABS_MT_SLOT, slot);
 		input_report_abs(dev->input, ABS_MT_TRACKING_ID, -1);
@@ -132,7 +129,7 @@ static void mcs7000_work_handler(struct work_struct *work)
 
 	input_event = response_buffer[0] & 0x0f;
 
-/*	printk(KERN_DEBUG "%s: Pressed: %i, Input Event: %i\n", __FUNCTION__, pressed, input_event);*/
+	printk(KERN_DEBUG "%s: Pressed: %i, Input Event: %i\n", __FUNCTION__, pressed, input_event);
 
 	for(i = 0; i < MAX_TOUCH_POINTS; i++) {
 		x[i] = response_buffer[(i*4)+2] | ((response_buffer[(i*4)+1] & 0xf0) << 4);
@@ -249,9 +246,6 @@ static int mcs7000_i2c_probe(struct i2c_client *client, const struct i2c_device_
 	}
 
 	dev->input->name = "touch_mcs7000";
-	set_bit(EV_SYN, dev->input->evbit);
-	set_bit(EV_ABS, dev->input->evbit);
-	set_bit(EV_KEY, dev->input->evbit);
 
 	err = input_register_device(dev->input);
 	if(err < 0) {
@@ -259,7 +253,6 @@ static int mcs7000_i2c_probe(struct i2c_client *client, const struct i2c_device_
 		goto _cleanup_input_register;
 	}
 
-	input_set_abs_params(dev->input, ABS_MT_TOUCH_MAJOR, 0, 9, 0, 0);
 	input_set_abs_params(dev->input, ABS_MT_PRESSURE, 0, 255, 0, 0);
 	input_set_abs_params(dev->input, ABS_MT_TRACKING_ID, 0, 1, 0, 0);
 
