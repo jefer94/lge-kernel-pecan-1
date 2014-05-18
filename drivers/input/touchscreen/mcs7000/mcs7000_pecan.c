@@ -34,14 +34,9 @@ struct mcs7000_pecan
 static int mcs7000_pecan_probe(struct mcs7000_device *dev)
 {
 	struct mcs7000_pecan *pecan_data;
-	int err = 0;
 
 	pecan_data = kzalloc(sizeof(struct mcs7000_pecan), GFP_KERNEL);
-	if(pecan_data == NULL) {
-		printk(KERN_ERR "%s: Not enough memory for Pecan platform data.\n", __FUNCTION__);
-		err = -ENOMEM;
-		goto _cleanup_end;
-	}
+	if(pecan_data == NULL) return -ENOMEM;
 
 	mcs7000_set_platform_data(dev, pecan_data);
 
@@ -50,31 +45,9 @@ static int mcs7000_pecan_probe(struct mcs7000_device *dev)
 	pecan_data->touch_data = dev->client->dev.platform_data;
 	pecan_data->irq_gpio = dev->client->irq - NR_MSM_IRQS;
 
-	err = gpio_request(pecan_data->irq_gpio, "mcs7000_irq_gpio");
-	if(err < 0) {
-		printk(KERN_ERR "%s: Cannot request GPIO pin for IRQ.\n", __FUNCTION__);
-		goto _cleanup_gpio_request;
-	}
-
-	err = gpio_direction_input(pecan_data->irq_gpio);
-	if(err < 0) {
-		printk(KERN_ERR "%s: Cannot set IRQ GPIO pin as input direction.\n", __FUNCTION__);
-		goto _cleanup_gpio_direction;
-	}
-
 	input_set_abs_params(dev->input, ABS_MT_POSITION_X, pecan_data->touch_data->ts_x_min, pecan_data->touch_data->ts_x_max, 0, 0);
 	input_set_abs_params(dev->input, ABS_MT_POSITION_Y, pecan_data->touch_data->ts_y_min, pecan_data->touch_data->ts_y_max, 0, 0);
 	return 0;
-
-_cleanup_gpio_direction:
-	gpio_free(pecan_data->irq_gpio);
-
-_cleanup_gpio_request:
-	mcs7000_set_platform_data(dev, NULL);
-	kfree(pecan_data);
-
-_cleanup_end:
-	return err;
 }
 
 static int mcs7000_pecan_power_on(struct mcs7000_device *dev)
@@ -141,7 +114,7 @@ static void mcs7000_pecan_report_key(struct mcs7000_device *dev, int key, int st
 			return;
 	}
 
-	input_event(dev->input, EV_KEY, input_key, !!status);
+	input_report_key(dev->input, input_key, status);
 	input_sync(dev->input);
 }
 
@@ -177,7 +150,6 @@ static void mcs7000_pecan_input_event(struct mcs7000_device *dev, unsigned char 
 static void mcs7000_pecan_remove(struct mcs7000_device *dev)
 {
 	struct mcs7000_pecan *pecan_data = mcs7000_get_platform_data(dev);
-	gpio_free(pecan_data->irq_gpio);
 	kfree(pecan_data);
 	mcs7000_set_platform_data(dev, NULL);
 }
