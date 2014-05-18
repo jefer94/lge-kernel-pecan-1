@@ -1117,3 +1117,4 @@ module_exit(mcs7000_ts_exit);
 
 MODULE_DESCRIPTION("MELFAS MCS7000 Touchscreen Driver");
 MODULE_LICENSE("GPL");
+
