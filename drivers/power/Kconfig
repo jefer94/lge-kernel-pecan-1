@@ -57,12 +57,6 @@ config BATTERY_DS2782
 	  Say Y here to enable support for the DS2782 standalone battery
 	  gas-gauge.
 
-config BATTERY_DS2784
-	tristate "DS2784 battery driver "
-	select W1
-	help
-	  Say Y here to enable support for batteries with ds2784 chip.
-
 config BATTERY_PMU
 	tristate "Apple PMU battery"
 	depends on PPC32 && ADB_PMU
@@ -115,32 +109,5 @@ config CHARGER_PCF50633
 	depends on MFD_PCF50633
 	help
 	 Say Y to include support for NXP PCF50633 Main Battery Charger.
-
-config BATTERY_MSM
-	tristate "MSM battery"
-	depends on ARCH_MSM
-	default m
-	help
-	  Say Y to enable support for the battery in Qualcomm MSM.
-
-config MAX17040_FUEL_GAUGE
-	tristate "MAX17040 fuel gauge"
-	depends on ARCH_MSM
-	default n
-	help
-	  Say Y to enable support for MAX17040 fuel gauge.
-config BATTERY_MSM_FAKE
-	tristate "Fake MSM battery"
-	depends on ARCH_MSM && BATTERY_MSM
-	default n
-	help
-	  Say Y to bypass actual battery queries.
-
-config LGE_FUEL_SPG
-	tristate "LGE FUEL SPG"
-	depends on ARCH_MSM && BATTERY_MSM
-	default n
-	help
-	  Say Y to enable LGE Fuel Gauge
 
 endif # POWER_SUPPLY

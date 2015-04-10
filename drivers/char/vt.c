@@ -105,20 +105,6 @@
 #include <asm/system.h>
 #include <linux/uaccess.h>
 
-/*LGE_CHANGE_S [bluerti@lge.com] 2009-07-10, Make a New API for Error Handler > */
-#define FB_MAX 32
-extern struct fb_info *registered_fb[FB_MAX];
-#define	LGE_ERROR_MAX_ROW				29//50 //<[blue.park@lge.com] Aloha_G = 400*800
-#define	LGE_ERROR_MAX_COLUMN			40//80
-extern void fbcon_putcs_byLGE(struct vc_data *vc, const unsigned short *s,
-			int count, int ypos, int xpos);
-extern void fbcon_update_byLGE(struct vc_data *vc);
-#define ARM9_CRASH_STRING 		"[ B l u e   E r r o r   H a n d l e r   V 1 . 2 ]   A r m 9   C r a s h ! !   "
-#define ARM11_CRASH_STRING  	"[ B l u e   E r r o r   H a n d l e r   V 1 . 2 ]   A r m 1 1   C r a s h ! ! "
-#define ANDROID_CRASH_STRING 	"[ B l u e   E r r o r   H a n d l e r   V 1 . 2 ]   A n d r o i d   C r a s h ! ! "
-#define RAMDUMP_STRING 			"[ P r e s s   V o l u m e   u p   k e y ]   T o   g e t   R a m d u m p ! !                                                                                       "
-#define RESET_STRING			"[ P r e s s   V o l u m e   d o w n   k e y ]   R e b o o t & s a v e l o g ! !                                                                                   "
-/*LGE_CHANGE_E [bluerti@lge.com] 2009-07-10, Make a New API for Error Handler > */
 #define MAX_NR_CON_DRIVER 16
 
 #define CON_DRIVER_FLAG_MODULE 1
@@ -335,39 +321,6 @@ static void scrdown(struct vc_data *vc, unsigned int t, unsigned int b, int nr)
 	scr_memmovew(s + step, s, (b - t - nr) * vc->vc_size_row);
 	scr_memsetw(s, vc->vc_video_erase_char, 2 * step);
 }
-/*LGE_CHANGE_S [blue.park@lge.com] 2010-04-01, Make a New API for Error Handler > */
-void display_errorinfo_byLGE(int crash_side, unsigned short * buf, int count)
-{
-	extern void expand_char_to_shrt(char * message,unsigned short *buffer);
-	extern int msm_fb_refesh_enabled;
-	struct vc_data *vc;
-	int i; 
-	unsigned short * temp = buf;
-	vc = vc_cons[0].d;
-
-	if(crash_side == 0) {
-		fbcon_putcs_byLGE (vc,(unsigned short *)ARM9_CRASH_STRING,LGE_ERROR_MAX_COLUMN,0,0);
-	} else if (crash_side == 1) { 
-		fbcon_putcs_byLGE (vc,(unsigned short *)ARM11_CRASH_STRING,LGE_ERROR_MAX_COLUMN,0,0);
-	} else if (crash_side == 2 || crash_side == 3) {
-		fbcon_putcs_byLGE (vc,(unsigned short *)ANDROID_CRASH_STRING,LGE_ERROR_MAX_COLUMN,0,0);
-	}
-	fbcon_putcs_byLGE(vc,(unsigned short *)RAMDUMP_STRING, LGE_ERROR_MAX_COLUMN,1,0);
-	fbcon_putcs_byLGE(vc,(unsigned short *)RESET_STRING,LGE_ERROR_MAX_COLUMN,2,0);
-
-	temp+=LGE_ERROR_MAX_COLUMN;
-
-	
-	for (i=0; i< LGE_ERROR_MAX_ROW-1; i++) {
-			fbcon_putcs_byLGE(vc, temp, LGE_ERROR_MAX_COLUMN , i+3,0);
-			temp += LGE_ERROR_MAX_COLUMN;
-		}
-
-	fbcon_update_byLGE(vc);
-	msm_fb_refesh_enabled = 0;	// Block another Refresh
-
-}
-/*LGE_CHANGE_E [blue.park@lge.com] 2010-04-01, Make a New API for Error Handler > */
 
 static void do_update_region(struct vc_data *vc, unsigned long start, int count)
 {
@@ -2472,37 +2425,6 @@ int set_console(int nr)
 struct tty_driver *console_driver;
 
 #ifdef CONFIG_VT_CONSOLE
-
-/**
- * vt_kmsg_redirect() - Sets/gets the kernel message console
- * @new:	The new virtual terminal number or -1 if the console should stay
- * 		unchanged
- *
- * By default, the kernel messages are always printed on the current virtual
- * console. However, the user may modify that default with the
- * TIOCL_SETKMSGREDIRECT ioctl call.
- *
- * This function sets the kernel message console to be @new. It returns the old
- * virtual console number. The virtual terminal number 0 (both as parameter and
- * return value) means no redirection (i.e. always printed on the currently
- * active console).
- *
- * The parameter -1 means that only the current console is returned, but the
- * value is not modified. You may use the macro vt_get_kmsg_redirect() in that
- * case to make the code more understandable.
- *
- * When the kernel is compiled without CONFIG_VT_CONSOLE, this function ignores
- * the parameter and always returns 0.
- */
-int vt_kmsg_redirect(int new)
-{
-	static int kmsg_con;
-
-	if (new != -1)
-		return xchg(&kmsg_con, new);
-	else
-		return kmsg_con;
-}
 
 /*
  *	Console on virtual terminal

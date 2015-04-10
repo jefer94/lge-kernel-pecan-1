@@ -710,7 +710,7 @@ fb_read(struct file *file, char __user *buf, size_t count, loff_t *ppos)
 
 	if (info->fbops->fb_read)
 		return info->fbops->fb_read(info, buf, count, ppos);
-
+	
 	total_size = info->screen_size;
 
 	if (total_size == 0)
@@ -785,7 +785,7 @@ fb_write(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
 
 	if (info->fbops->fb_write)
 		return info->fbops->fb_write(info, buf, count, ppos);
-
+	
 	total_size = info->screen_size;
 
 	if (total_size == 0)
@@ -1145,11 +1145,14 @@ static long do_fb_ioctl(struct fb_info *info, unsigned int cmd,
 		unlock_fb_info(info);
 		break;
 	default:
+		if (!lock_fb_info(info))
+			return -ENODEV;
 		fb = info->fbops;
 		if (fb->fb_ioctl)
 			ret = fb->fb_ioctl(info, cmd, arg);
 		else
 			ret = -ENOTTY;
+		unlock_fb_info(info);
 	}
 	return ret;
 }

@@ -60,21 +60,3 @@ SUBSYS(net_cls)
 #endif
 
 /* */
-
-#ifdef CONFIG_CGROUP_BFQIO
-SUBSYS(bfqio)
-#endif
-
-/* */
-
-#ifdef CONFIG_CGROUP_BFQIO
-SUBSYS(bfqio)
-#endif
-
-/* */
-
-#ifdef CONFIG_CGROUP_BFQIO
-SUBSYS(bfqio)
-#endif
-
-/* */

@@ -30,8 +30,6 @@
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Adam Nielsen <a.nielsen@shikadi.net>");
 MODULE_DESCRIPTION("Xtables: trigger LED devices on packet match");
-MODULE_ALIAS("ipt_LED");
-MODULE_ALIAS("ip6t_LED");
 
 /*
  * This is declared in here (the kernel module) only, to avoid having these
@@ -44,7 +42,7 @@ struct xt_led_info_internal {
 };
 
 static unsigned int
-led_tg(struct sk_buff *skb, const struct xt_action_param *par)
+led_tg(struct sk_buff *skb, const struct xt_target_param *par)
 {
 	const struct xt_led_info *ledinfo = par->targinfo;
 	struct xt_led_info_internal *ledinternal = ledinfo->internal_data;

@@ -1559,7 +1559,7 @@ static void get_markers(struct elf_info *info, struct module *mod)
 			const char *name = strings + sym->st_value;
 			const char *fmt = strchr(name, '\0') + 1;
 			char *line = NULL;
-			if (asprintf(&line, "%s\t%s\t%s\n", name, mod->name, fmt)) {}
+			asprintf(&line, "%s\t%s\t%s\n", name, mod->name, fmt);
 			NOFAIL(line);
 			mod->markers[n++] = line;
 		}
@@ -1979,7 +1979,7 @@ static void write_dump(const char *fname)
 static void add_marker(struct module *mod, const char *name, const char *fmt)
 {
 	char *line = NULL;
-	if (asprintf(&line, "%s\t%s\t%s\n", name, mod->name, fmt)) {}
+	asprintf(&line, "%s\t%s\t%s\n", name, mod->name, fmt);
 	NOFAIL(line);
 
 	mod->markers = NOFAIL(realloc(mod->markers, ((mod->nmarkers + 1) *

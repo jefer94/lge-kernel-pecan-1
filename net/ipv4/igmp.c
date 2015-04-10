@@ -834,7 +834,7 @@ static void igmp_heard_query(struct in_device *in_dev, struct sk_buff *skb,
 
 
 	if (len == 8) {
-		if (ih->code == 0 || IGMP_V2_SEEN(in_dev)) {
+		if (ih->code == 0) {
 			/* Alas, old v1 router presents here. */
 
 			max_delay = IGMP_Query_Response_Interval;
@@ -1899,9 +1899,8 @@ int ip_mc_source(int add, int omode, struct sock *sk, struct
 	err = -EADDRNOTAVAIL;
 
 	for (pmc=inet->mc_list; pmc; pmc=pmc->next) {
-		if ((pmc->multi.imr_multiaddr.s_addr ==
-		     imr.imr_multiaddr.s_addr) &&
-		    (pmc->multi.imr_ifindex == imr.imr_ifindex))
+		if (pmc->multi.imr_multiaddr.s_addr == imr.imr_multiaddr.s_addr
+		    && pmc->multi.imr_ifindex == imr.imr_ifindex)
 			break;
 	}
 	if (!pmc) {		/* must have a prior join */

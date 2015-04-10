@@ -472,38 +472,6 @@ static inline int device_is_registered(struct device *dev)
 	return dev->kobj.state_in_sysfs;
 }
 
-static inline void device_enable_async_suspend(struct device *dev)
-{
-	if (dev->power.status == DPM_ON)
-		dev->power.async_suspend = true;
-}
-
-static inline void device_disable_async_suspend(struct device *dev)
-{
-       if (dev->power.status == DPM_ON)
-                dev->power.async_suspend = false;
-}
-
-static inline bool device_async_suspend_enabled(struct device *dev)
-{
-   return !!dev->power.async_suspend;
-}
-
-static inline void device_lock(struct device *dev)
-{
-	down(&dev->sem);
-}
-
-static inline int device_trylock(struct device *dev)
-{
-	return down_trylock(&dev->sem);
-}
-
-static inline void device_unlock(struct device *dev)
-{
-	up(&dev->sem);
-}
-
 void driver_init(void);
 
 /*

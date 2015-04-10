@@ -20,29 +20,18 @@
 #include <linux/types.h>
 #include <linux/ioctl.h>
 
-/**
- * struct logger_entry - defines a single entry that is given to a logger
- * @len:	The length of the payload
- * @__pad:	Two bytes of padding that appear to be required
- * @pid:	The generating process' process ID
- * @tid:	The generating process' thread ID
- * @sec:	The number of seconds that have elapsed since the Epoch
- * @nsec:	The number of nanoseconds that have elapsed since @sec
- * @msg:	The message that is to be logged
- */
 struct logger_entry {
-	__u16		len;
-	__u16		__pad;
-	__s32		pid;
-	__s32		tid;
-	__s32		sec;
-	__s32		nsec;
-	char		msg[0];
+	__u16		len;	/* length of the payload */
+	__u16		__pad;	/* no matter what, we get 2 bytes of padding */
+	__s32		pid;	/* generating process's pid */
+	__s32		tid;	/* generating process's tid */
+	__s32		sec;	/* seconds since Epoch */
+	__s32		nsec;	/* nanoseconds */
+	char		msg[0];	/* the entry's payload */
 };
 
 #define LOGGER_LOG_RADIO	"log_radio"	/* radio-related messages */
 #define LOGGER_LOG_EVENTS	"log_events"	/* system/hardware events */
-#define LOGGER_LOG_SYSTEM	"log_system"	/* system/framework messages */
 #define LOGGER_LOG_MAIN		"log_main"	/* everything else */
 
 #define LOGGER_ENTRY_MAX_LEN		(4*1024)

@@ -413,14 +413,6 @@ config KEYBOARD_XTKBD
 	  To compile this driver as a module, choose M here: the
 	  module will be called xtkbd.
 
-config KEYBOARD_QCIKBD
-   tristate "Quanta Computer Inc. keyboard"
-   depends on I2C && ARCH_MSM_SCORPION
-   default n
-   help
-     Say Y here if you want to use the Quanta keyboard driver for ST 1.5
-     platform.
-
 config KEYBOARD_W90P910
 	tristate "W90P910 Matrix Keypad support"
 	depends on ARCH_W90X900
@@ -431,41 +423,4 @@ config KEYBOARD_W90P910
 	  To compile this driver as a module, choose M here: the
 	  module will be called w90p910_keypad.
 
-config KEYBOARD_I2C_MSM
-	tristate "Qualcomm I2C keyboard"
-	depends on I2C && ARCH_MSM_SCORPION
-	default n
-	help
-	  Say Y here if you want to enable the driver for the I2C QWERTY
-	  keyboard provided as a reference design from Qualcomm. This is
-	  intended to support an integrated keyboard that is connected via
-	  four GPIO pins on the 8K platforms. The GPIO pins are set up for
-	  an external interrupt, hardware reset, and the two I2C lines
-	  connected to the internal i2c controller.
-
-config KEYBOARD_PMIC8058
-	tristate "Qualcomm PMIC8058 keypad"
-	depends on PMIC8058
-	default y
-	help
-	  Say Y here if you want to enable the driver for the PMIC8058
-	  keypad provided as a reference design from Qualcomm. This is intended
-	  to support upto 18x8 matrix based keypad design.
-
-	  To compile this driver as a module, choose M here: the module will
-	  be called pmic8058-keypad.
-
-config KEYBOARD_ATCMD_VIRTUAL
-	tristate "atcmd virtual keypad"
-	default n
-	help
-	  Say Y here if you want to enable the driver for the atcmd virtual
-	  keypad.
-	  
-config KEYBOARD_PP2106
-	tristate "PP2106 qwerty keypad"
-	default n
-	help
-	  Say Y here if you want to enable the driver for the PP2106 qwerty
-	  keypad.
 endif

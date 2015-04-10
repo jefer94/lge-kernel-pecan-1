@@ -229,21 +229,6 @@ config USB_TEST
 	  See <http://www.linux-usb.org/usbtest/> for more information,
 	  including sample test device firmware and "how to use it".
 
-config USB_EHSET_TEST_FIXTURE
-	tristate "USB EHSET Test Fixture Driver"
-	depends on USB && USB_EHCI_EHSET
-	default n
-	help
-	  Say Y here if you want to use EHSET Test Fixture device for host
-	  compliance testing.
-
-	  This driver initiates test modes on the downstream port to which the
-	  test fixture is attached.
-
-	  See <http://www.usb.org/developers/onthego/EHSET_v1.01.pdf>
-	  for more information.
-
-
 config USB_ISIGHTFW
 	tristate "iSight firmware loading support"
 	depends on USB
@@ -271,24 +256,3 @@ config USB_VST
 	  module will be called vstusb.
 
 
-config USB_QCOM_DIAG
-	tristate "USB Qualcomm diag port driver"
-	depends on USB && !USB_SERIAL_QUALCOMM
-	default n
-	help
-	  Say Y here if you want to use the diag ports provided
-	  by many Qualcomm chipsets.
-
-	  To compile this driver as a module, choose M here: the
-	  module will be called qcaux.  If unsure, choose N.
-
-config USB_QCOM_DIAG_TEST
-	tristate "USB Qualcomm diag port unit test driver"
-	depends on USB && USB_QCOM_DIAG
-	default n
-	help
-	  Say Y here if you want to use unit test diag port provided
-	  by many Qualcomm chipsets.
-
-	  To compile this driver as a module, choose M here: the
-	  module will be called qcaux.  If unsure, choose N.

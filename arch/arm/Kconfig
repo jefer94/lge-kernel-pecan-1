@@ -18,10 +18,6 @@ config ARM
 	select HAVE_KRETPROBES if (HAVE_KPROBES)
 	select HAVE_FUNCTION_TRACER if (!XIP_KERNEL)
 	select HAVE_GENERIC_DMA_COHERENT
-	select HAVE_KERNEL_GZIP
-	select HAVE_KERNEL_BZIP2
-	select HAVE_KERNEL_LZMA
-        select HAVE_KERNEL_XZ
 	help
 	  The ARM series is a line of low-power-consumption RISC chip designs
 	  licensed by ARM Ltd and targeted at embedded applications and
@@ -119,9 +115,10 @@ config GENERIC_LOCKBREAK
 
 config RWSEM_GENERIC_SPINLOCK
 	bool
+	default y
 
 config RWSEM_XCHGADD_ALGORITHM
-	def_bool y
+	bool
 
 config ARCH_HAS_ILOG2_U32
 	bool
@@ -135,9 +132,6 @@ config ARCH_HAS_CPUFREQ
 	  Internal node to signify that the ARCH has CPUFREQ support
 	  and that the relevant menu configurations are displayed for
 	  it.
-
-config ARCH_HAS_CPU_IDLE_WAIT
-	bool
 
 config GENERIC_HWEIGHT
 	bool
@@ -567,18 +561,15 @@ config ARCH_PXA
 	  Support for Intel/Marvell's PXA2xx/PXA3xx processor line.
 
 config ARCH_MSM
-	bool "Qualcomm MSM/QSD"
-	select ARCH_HAS_CPUFREQ
-	select GENERIC_GPIO
+	bool "Qualcomm MSM"
+	select CPU_V6
 	select GENERIC_TIME
 	select GENERIC_CLOCKEVENTS
-	select ARCH_WANT_OPTIONAL_GPIOLIB
 	help
-	  Support for Qualcomm MSM/QSD based systems.  This runs on the
-	  ARM11/Scorpion apps processor of the MSM/QSD and depends on a
-	  shared memory interface to the ARM9 modem processor which
-	  runs the baseband stack and controls some vital subsystems
-	  (clock and power control, etc).
+	  Support for Qualcomm MSM7K based systems.  This runs on the ARM11
+	  apps processor of the MSM7K and depends on a shared memory
+	  interface to the ARM9 modem processor which runs the baseband stack
+	  and controls some vital subsystems (clock and power control, etc).
 
 config ARCH_RPC
 	bool "RiscPC"
@@ -828,10 +819,6 @@ config PLAT_PXA
 
 source arch/arm/mm/Kconfig
 
-config DONT_RESERVE_FROM_MOVABLE_ZONE
-	def_bool y
-	depends on MEMORY_HOTPLUG
-
 config IWMMXT
 	bool "Enable iWMMXt support"
 	depends on CPU_XSCALE || CPU_XSC3 || CPU_MOHAWK
@@ -959,18 +946,6 @@ source "drivers/pci/Kconfig"
 
 source "drivers/pcmcia/Kconfig"
 
-config KSAPI
-        tristate "KSAPI support (EXPERIMENTAL)"
-	depends on ARCH_MSM_SCORPION
-	default n
-	help
-	  KSAPI: Performance monitoring tool for linux.
-	  KSAPI records performance statistics for Snapdragon linux platform.
-	  It uses the /proc FS as a means to exchange configuration data and
-	  counter statistics. It can monitor the counter statistics for
-	  Scorpion processor supported hardware performace counters on a per
-	  thread basis or AXI counters on an overall system basis.
-
 endmenu
 
 menu "Kernel Features"
@@ -980,8 +955,7 @@ source "kernel/time/Kconfig"
 config SMP
 	bool "Symmetric Multi-Processing (EXPERIMENTAL)"
 	depends on EXPERIMENTAL && (REALVIEW_EB_ARM11MP || REALVIEW_EB_A9MP ||\
-		 MACH_REALVIEW_PB11MP || MACH_REALVIEW_PBX || ARCH_OMAP4 ||\
-		 ARCH_MSM_SCORPIONMP)
+		 MACH_REALVIEW_PB11MP || MACH_REALVIEW_PBX || ARCH_OMAP4)
 	depends on GENERIC_CLOCKEVENTS
 	select USE_GENERIC_SMP_HELPERS
 	select HAVE_ARM_SCU if (ARCH_REALVIEW || ARCH_OMAP4)
@@ -1043,15 +1017,6 @@ config NR_CPUS
 	depends on SMP
 	default "4"
 
-config SMP_PARALLEL_START
-	bool "Parallel start of SMP cores"
-	depends on SMP
-	default n
-	help
-	  Say Y here if all CPUs boot to the kernel entrypoint in
-	  parallel, rather than non-master CPUs waiting to be brought
-	  out of reset into machine specific startup code.
-
 config HOTPLUG_CPU
 	bool "Support for hot-pluggable CPUs (EXPERIMENTAL)"
 	depends on SMP && HOTPLUG && EXPERIMENTAL
@@ -1062,7 +1027,7 @@ config HOTPLUG_CPU
 config LOCAL_TIMERS
 	bool "Use local timer interrupts"
 	depends on SMP && (REALVIEW_EB_ARM11MP || MACH_REALVIEW_PB11MP || \
-		REALVIEW_EB_A9MP || MACH_REALVIEW_PBX || ARCH_OMAP4 || ARCH_MSM_SCORPIONMP)
+		REALVIEW_EB_A9MP || MACH_REALVIEW_PBX || ARCH_OMAP4)
 	default y
 	select HAVE_ARM_TWD if (ARCH_REALVIEW || ARCH_OMAP4)
 	help
@@ -1131,20 +1096,6 @@ config OABI_COMPAT
 config ARCH_HAS_HOLES_MEMORYMODEL
 	bool
 
-config HOLES_IN_ZONE
-	bool "Memory map has holes ending within MAX_ORDER_NR_PAGES"
-	default n
-	depends on FLATMEM
-	help
-	  Say 'y' here if you have multiple memory banks where the bank
-	  end addresses coresponding to the holes are not MAX_ORDER_NR_PAGES
-	  aligned. Failure to enable this in those circumstances will result
-	  in the VM code assuming ownership of pages with no memmap memory
-	  allocated for them. This option could impact performance as it
-	  performs extra checks in the VM code. As alternative, consider
-	  aligning end addresses to MAX_ORDER_NR_PAGES or changing MAX_ORDER
-	  to compensate for your alignment requirements.
-
 # Discontigmem is deprecated
 config ARCH_DISCONTIGMEM_ENABLE
 	bool
@@ -1185,13 +1136,6 @@ config HIGHPTE
 	bool "Allocate 2nd-level pagetables from highmem"
 	depends on HIGHMEM
 	depends on !OUTER_CACHE
-
-config VMALLOC_RESERVE
-	hex "Reserved vmalloc space"
-	default 0x08000000
-	depends on MMU
-	help
-	  Reserved vmalloc space if not specified on the kernel commandline.
 
 source "mm/Kconfig"
 
@@ -1261,16 +1205,6 @@ config ALIGNMENT_TRAP
 	  correct operation of some network protocols. With an IP-only
 	  configuration it is safe to say N, otherwise say Y.
 
-config ALLOW_CPU_ALIGNMENT
-	bool "Allow CPU-based alignment handling"
-	default y if ARCH_MSM_SCORPION || ARCH_MSM_SCORPIONMP
-	help
-	  Advanced ARM processors, such as the Cortex series and ARMv7-based
-	  CPUS are capable of performing unaligned accesses for many types of
-	  memory accesses.  Typically, using a cpu-based alignment fixup is
-	  faster than doing such a fixup in software.  For best performance
-	  on advanced CPUs, say Y here.
-
 config UACCESS_WITH_MEMCPY
 	bool "Use kernel mem{cpy,set}() for {copy_to,clear}_user() (EXPERIMENTAL)"
 	depends on MMU && EXPERIMENTAL
@@ -1286,17 +1220,6 @@ config UACCESS_WITH_MEMCPY
 
 	  However, if the CPU data cache is using a write-allocate mode,
 	  this option is unlikely to provide any performance gain.
-
-config CP_ACCESS
-	tristate "CP register access tool"
-	default m
-	help
-	  Provide support for Coprocessor register access using /sys
-	  interface. Read and write to CP registers from userspace
-	  through sysfs interface. A sys file (cp_rw) will be created under
-	  /sys/devices/system/cpaccess/cpaccess0.
-
-	  If unsure, say N.
 
 endmenu
 
@@ -1344,17 +1267,6 @@ config CMDLINE
 	  architectures, you should supply some command-line options at build
 	  time by entering them here. As a minimum, you should specify the
 	  memory size and the root device (e.g., mem=64M root=/dev/nfs).
-
-config CMDLINE_FORCE
-	bool "Always use the default kernel command string"
-	depends on CMDLINE != ""
-	help
-	  Always use the default kernel command string, even if the boot
-	  loader passes other arguments to the kernel.
-	  This is useful if you cannot or don't want to change the
-	  command-line options your boot loader passes to the kernel.
-
-	  If unsure, say N.
 
 config XIP_KERNEL
 	bool "Kernel Execute-In-Place from ROM"
@@ -1498,14 +1410,6 @@ endif
 source "drivers/cpuidle/Kconfig"
 
 endmenu
-
-config CPU_FREQ_MSM
-        bool
-        depends on CPU_FREQ && ARCH_MSM
-        default y
-        help
-          This enables the CPUFreq driver for Qualcomm CPUs.
-          If in doubt, say Y.
 
 menu "Floating point emulation"
 

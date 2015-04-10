@@ -62,8 +62,6 @@
 
 #define __exception	__attribute__((section(".exception.text")))
 
-void cpu_idle_wait(void);
-
 struct thread_info;
 struct task_struct;
 
@@ -125,9 +123,8 @@ extern unsigned int user_debug;
 				    : : "r" (0) : "memory")
 #define dsb() __asm__ __volatile__ ("mcr p15, 0, %0, c7, c10, 4" \
 				    : : "r" (0) : "memory")
-#define dmb() do { __asm__ __volatile__ ("mcr p15, 0, %0, c7, c10, 5" \
-				: : "r" (0) : "memory"); \
-				arch_barrier_extra(); } while (0)
+#define dmb() __asm__ __volatile__ ("mcr p15, 0, %0, c7, c10, 5" \
+				    : : "r" (0) : "memory")
 #elif defined(CONFIG_CPU_FA526)
 #define isb() __asm__ __volatile__ ("mcr p15, 0, %0, c7, c5, 4" \
 				    : : "r" (0) : "memory")
@@ -141,26 +138,21 @@ extern unsigned int user_debug;
 #define dmb() __asm__ __volatile__ ("" : : : "memory")
 #endif
 
-#if __LINUX_ARM_ARCH__ >= 7 || defined(CONFIG_SMP) || defined(CONFIG_ARCH_MSM)
-#define mb()		dmb()
-#define rmb()		dmb()
-#define wmb()		dmb()
-#else
+#ifndef CONFIG_SMP
 #define mb()	do { if (arch_is_coherent()) dmb(); else barrier(); } while (0)
 #define rmb()	do { if (arch_is_coherent()) dmb(); else barrier(); } while (0)
 #define wmb()	do { if (arch_is_coherent()) dmb(); else barrier(); } while (0)
-#endif
-
-#ifndef CONFIG_SMP
 #define smp_mb()	barrier()
 #define smp_rmb()	barrier()
 #define smp_wmb()	barrier()
 #else
-#define smp_mb()	mb()
-#define smp_rmb()	rmb()
-#define smp_wmb()	wmb()
+#define mb()		dmb()
+#define rmb()		dmb()
+#define wmb()		dmb()
+#define smp_mb()	dmb()
+#define smp_rmb()	dmb()
+#define smp_wmb()	dmb()
 #endif
-
 #define read_barrier_depends()		do { } while(0)
 #define smp_read_barrier_depends()	do { } while(0)
 

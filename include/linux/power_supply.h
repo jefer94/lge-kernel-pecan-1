@@ -14,7 +14,6 @@
 #define __LINUX_POWER_SUPPLY_H__
 
 #include <linux/device.h>
-#include <linux/wakelock.h>
 #include <linux/workqueue.h>
 #include <linux/leds.h>
 
@@ -93,7 +92,6 @@ enum power_supply_property {
 	POWER_SUPPLY_PROP_CURRENT_AVG,
 	POWER_SUPPLY_PROP_POWER_NOW,
 	POWER_SUPPLY_PROP_POWER_AVG,
-	POWER_SUPPLY_PROP_CURRENT_MAX,
 	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
 	POWER_SUPPLY_PROP_CHARGE_EMPTY_DESIGN,
 	POWER_SUPPLY_PROP_CHARGE_FULL,
@@ -154,9 +152,6 @@ struct power_supply {
 	/* private */
 	struct device *dev;
 	struct work_struct changed_work;
-	spinlock_t changed_lock;
-	bool changed;
-	struct wake_lock work_wake_lock;
 
 #ifdef CONFIG_LEDS_TRIGGERS
 	struct led_trigger *charging_full_trig;

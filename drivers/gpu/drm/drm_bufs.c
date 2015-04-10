@@ -40,37 +40,13 @@
 
 resource_size_t drm_get_resource_start(struct drm_device *dev, unsigned int resource)
 {
-	if (drm_core_check_feature(dev, DRIVER_USE_PLATFORM_DEVICE)) {
-		struct resource *r;
-		r = platform_get_resource(dev->platformdev, IORESOURCE_MEM,
-					     resource);
-
-		return r ? r->start : 0;
-	}
-
-#ifdef CONFIG_PCI
 	return pci_resource_start(dev->pdev, resource);
-#endif
-
-	return 0;
 }
 EXPORT_SYMBOL(drm_get_resource_start);
 
 resource_size_t drm_get_resource_len(struct drm_device *dev, unsigned int resource)
 {
-	if (drm_core_check_feature(dev, DRIVER_USE_PLATFORM_DEVICE)) {
-		struct resource *r;
-		r = platform_get_resource(dev->platformdev, IORESOURCE_MEM,
-			resource);
-
-		return r ? (r->end - r->start) : 0;
-	}
-
-#ifdef CONFIG_PCI
 	return pci_resource_len(dev->pdev, resource);
-#endif
-
-	return 0;
 }
 
 EXPORT_SYMBOL(drm_get_resource_len);
@@ -212,7 +188,7 @@ static int drm_addmap_core(struct drm_device * dev, resource_size_t offset,
 	switch (map->type) {
 	case _DRM_REGISTERS:
 	case _DRM_FRAME_BUFFER:
-#if !defined(__sparc__) && !defined(__alpha__) && !defined(__ia64__) && !defined(__powerpc64__) && !defined(__x86_64__) && !defined(__arm__)
+#if !defined(__sparc__) && !defined(__alpha__) && !defined(__ia64__) && !defined(__powerpc64__) && !defined(__x86_64__)
 		if (map->offset + (map->size-1) < map->offset ||
 		    map->offset < virt_to_phys(high_memory)) {
 			kfree(map);

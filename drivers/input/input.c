@@ -24,9 +24,6 @@
 #include <linux/mutex.h>
 #include <linux/rcupdate.h>
 #include <linux/smp_lock.h>
-#ifdef CONFIG_SWEEP2WAKE
-#include <linux/sweep2wake.h>
-#endif
 
 MODULE_AUTHOR("Vojtech Pavlik <vojtech@suse.cz>");
 MODULE_DESCRIPTION("Input core");
@@ -48,7 +45,6 @@ static unsigned int input_abs_bypass_init_data[] __initdata = {
 	ABS_MT_TOOL_TYPE,
 	ABS_MT_BLOB_ID,
 	ABS_MT_TRACKING_ID,
-	ABS_MT_PRESSURE,
 	0
 };
 static unsigned long input_abs_bypass[BITS_TO_LONGS(ABS_CNT)];
@@ -1558,13 +1554,7 @@ int input_register_device(struct input_dev *dev)
 	input_wakeup_procfs_readers();
 
 	mutex_unlock(&input_mutex);
-	#ifdef CONFIG_SWEEP2WAKE
-	pr_info("%s: SWEEP2WAKE device_set debugging: %s\n", __FUNCTION__,dev->name);
-	if(dev->name == "7k_handset"){
-		setInputDev(dev);
-		pr_info("%s: SWEEP2WAKE device_set : %s registered\n", __FUNCTION__,dev->name);
-	}
-#endif
+
 	return 0;
 }
 EXPORT_SYMBOL(input_register_device);

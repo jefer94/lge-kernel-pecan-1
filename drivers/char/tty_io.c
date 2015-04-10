@@ -2429,10 +2429,8 @@ static int tty_tiocmset(struct tty_struct *tty, struct file *file, unsigned int 
 		clear = ~val;
 		break;
 	}
-	set &= TIOCM_DTR|TIOCM_RTS|TIOCM_OUT1|TIOCM_OUT2|TIOCM_LOOP|TIOCM_CD|
-		TIOCM_RI|TIOCM_DSR|TIOCM_CTS;
-	clear &= TIOCM_DTR|TIOCM_RTS|TIOCM_OUT1|TIOCM_OUT2|TIOCM_LOOP|TIOCM_CD|
-		TIOCM_RI|TIOCM_DSR|TIOCM_CTS;
+	set &= TIOCM_DTR|TIOCM_RTS|TIOCM_OUT1|TIOCM_OUT2|TIOCM_LOOP;
+	clear &= TIOCM_DTR|TIOCM_RTS|TIOCM_OUT1|TIOCM_OUT2|TIOCM_LOOP;
 	return tty->ops->tiocmset(tty, file, set, clear);
 }
 

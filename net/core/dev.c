@@ -127,7 +127,6 @@
 #include <linux/jhash.h>
 #include <linux/random.h>
 #include <trace/events/napi.h>
-#include <linux/iface_stat.h>
 
 #include "net-sysfs.h"
 
@@ -2541,10 +2540,9 @@ static int __napi_gro_receive(struct napi_struct *napi, struct sk_buff *skb)
 		return GRO_NORMAL;
 
 	for (p = napi->gro_list; p; p = p->next) {
-		NAPI_GRO_CB(p)->same_flow =
-			(p->dev == skb->dev) &&
-			!compare_ether_header(skb_mac_header(p),
-					      skb_gro_mac_header(skb));
+		NAPI_GRO_CB(p)->same_flow = (p->dev == skb->dev)
+			&& !compare_ether_header(skb_mac_header(p),
+						 skb_gro_mac_header(skb));
 		NAPI_GRO_CB(p)->flush = 0;
 	}
 
@@ -5363,9 +5361,6 @@ int dev_change_net_namespace(struct net_device *dev, struct net *net, const char
 	unlist_netdevice(dev);
 
 	synchronize_net();
-
-        /* Store stats for this device in persistent iface_stat */
-		iface_stat_update(dev);
 
 	/* Shutdown queueing discipline. */
 	dev_shutdown(dev);

@@ -422,7 +422,7 @@ static void slob_free(void *block, int size)
 		set_slob(b, units,
 			(void *)((unsigned long)(b +
 					SLOB_UNITS(PAGE_SIZE)) & PAGE_MASK));
-	    set_slob_page_free(sp, &free_slob_small);
+		set_slob_page_free(sp, &free_slob_small);
 		goto out;
 	}
 

@@ -2749,7 +2749,7 @@ static int __devexit qe_udc_remove(struct of_device *ofdev)
 }
 
 /*-------------------------------------------------------------------------*/
-static const struct of_device_id qe_udc_match[] __devinitconst = {
+static struct of_device_id __devinitdata qe_udc_match[] = {
 	{
 		.compatible = "fsl,mpc8323-qe-usb",
 		.data = (void *)PORT_QE,

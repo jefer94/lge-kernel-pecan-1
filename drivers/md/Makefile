@@ -44,7 +44,6 @@ obj-$(CONFIG_DM_SNAPSHOT)	+= dm-snapshot.o
 obj-$(CONFIG_DM_MIRROR)		+= dm-mirror.o dm-log.o dm-region-hash.o
 obj-$(CONFIG_DM_LOG_USERSPACE)	+= dm-log-userspace.o
 obj-$(CONFIG_DM_ZERO)		+= dm-zero.o
-obj-$(CONFIG_DM_CACHE)          += dm-cache.o
 
 quiet_cmd_unroll = UNROLL  $@
       cmd_unroll = $(AWK) -f$(srctree)/$(src)/unroll.awk -vN=$(UNROLL) \
@@ -118,7 +117,3 @@ quiet_cmd_mktable = TABLE   $@
 targets += raid6tables.c
 $(obj)/raid6tables.c: $(obj)/mktables FORCE
 	$(call if_changed,mktable)
-
-# Ignore warnings to prevent build breaks when using gcc 4.5.0
-CFLAGS_REMOVE_dm.o = -Werror
-CFLAGS_REMOVE_dm-table.o = -Werror

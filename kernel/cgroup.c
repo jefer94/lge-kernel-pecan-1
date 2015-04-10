@@ -51,7 +51,6 @@
 #include <linux/pid_namespace.h>
 #include <linux/idr.h>
 #include <linux/vmalloc.h> /* TODO: replace with more sophisticated array */
-#include <linux/capability.h>
 
 #include <asm/atomic.h>
 
@@ -106,12 +105,6 @@ struct cgroupfs_root {
 
 	/* The name for this hierarchy - may be empty */
 	char name[MAX_CGROUP_ROOT_NAMELEN];
-
-	/*
-   	* Used to show coeherent informations in /proc/mounts without
-   	* acquiring the cgroup_mutex lock.
-   	*/
-  	rwlock_t lock;
 };
 
 /*
@@ -917,9 +910,7 @@ static int rebind_subsystems(struct cgroupfs_root *root,
 			mutex_lock(&ss->hierarchy_mutex);
 			cgrp->subsys[i] = dummytop->subsys[i];
 			cgrp->subsys[i]->cgroup = cgrp;
-			write_lock(&root->lock);
 			list_move(&ss->sibling, &root->subsys_list);
-			write_unlock(&root->lock);
 			ss->root = root;
 			if (ss->bind)
 				ss->bind(ss, cgrp);
@@ -934,9 +925,7 @@ static int rebind_subsystems(struct cgroupfs_root *root,
 			dummytop->subsys[i]->cgroup = dummytop;
 			cgrp->subsys[i] = NULL;
 			subsys[i]->root = &rootnode;
-			write_lock(&root->lock);
 			list_move(&ss->sibling, &rootnode.subsys_list);
-			write_unlock(&root->lock);
 			mutex_unlock(&ss->hierarchy_mutex);
 		} else if (bit & final_bits) {
 			/* Subsystem state should already exist */
@@ -957,7 +946,7 @@ static int cgroup_show_options(struct seq_file *seq, struct vfsmount *vfs)
 	struct cgroupfs_root *root = vfs->mnt_sb->s_fs_info;
 	struct cgroup_subsys *ss;
 
-	read_lock(&root->lock);
+	mutex_lock(&cgroup_mutex);
 	for_each_subsys(root, ss)
 		seq_printf(seq, ",%s", ss->name);
 	if (test_bit(ROOT_NOPREFIX, &root->flags))
@@ -966,7 +955,7 @@ static int cgroup_show_options(struct seq_file *seq, struct vfsmount *vfs)
 		seq_printf(seq, ",release_agent=%s", root->release_agent_path);
 	if (strlen(root->name))
 		seq_printf(seq, ",name=%s", root->name);
-	read_unlock(&root->lock);
+	mutex_unlock(&cgroup_mutex);
 	return 0;
 }
 
@@ -1121,11 +1110,8 @@ static int cgroup_remount(struct super_block *sb, int *flags, char *data)
 	/* (re)populate subsystem files */
 	cgroup_populate_dir(cgrp);
 
-	if (opts.release_agent) {
-		write_lock(&root->lock);
+	if (opts.release_agent)
 		strcpy(root->release_agent_path, opts.release_agent);
-		write_unlock(&root->lock);
-	}
  out_unlock:
 	kfree(opts.release_agent);
 	kfree(opts.name);
@@ -1157,7 +1143,6 @@ static void init_cgroup_root(struct cgroupfs_root *root)
 	struct cgroup *cgrp = &root->top_cgroup;
 	INIT_LIST_HEAD(&root->subsys_list);
 	INIT_LIST_HEAD(&root->root_list);
-	rwlock_init(&root->lock);
 	root->number_of_cgroups = 1;
 	cgrp->root = root;
 	cgrp->top_cgroup = cgrp;
@@ -1554,7 +1539,7 @@ int cgroup_path(const struct cgroup *cgrp, char *buf, int buflen)
 int cgroup_attach_task(struct cgroup *cgrp, struct task_struct *tsk)
 {
 	int retval = 0;
-	struct cgroup_subsys *ss, *failed_ss = NULL;
+	struct cgroup_subsys *ss;
 	struct cgroup *oldcgrp;
 	struct css_set *cg;
 	struct css_set *newcg;
@@ -1568,25 +1553,8 @@ int cgroup_attach_task(struct cgroup *cgrp, struct task_struct *tsk)
 	for_each_subsys(root, ss) {
 		if (ss->can_attach) {
 			retval = ss->can_attach(ss, cgrp, tsk, false);
-			if (retval) {
-				/*
-				 * Remember on which subsystem the can_attach()
-				 * failed, so that we only call cancel_attach()
-				 * against the subsystems whose can_attach()
-				 * succeeded. (See below)
-				 */
-				failed_ss = ss;
-				goto out;
-			}
-		} else if (!capable(CAP_SYS_ADMIN)) {
-			const struct cred *cred = current_cred(), *tcred;
-
-			/* No can_attach() - check perms generically */
-			tcred = __task_cred(tsk);
-			if (cred->euid != tcred->uid &&
-			    cred->euid != tcred->suid) {
-				return -EACCES;
-			}
+			if (retval)
+				return retval;
 		}
 	}
 
@@ -1600,17 +1568,14 @@ int cgroup_attach_task(struct cgroup *cgrp, struct task_struct *tsk)
 	 */
 	newcg = find_css_set(cg, cgrp);
 	put_css_set(cg);
-	if (!newcg) {
-		retval = -ENOMEM;
-		goto out;
-	}
+	if (!newcg)
+		return -ENOMEM;
 
 	task_lock(tsk);
 	if (tsk->flags & PF_EXITING) {
 		task_unlock(tsk);
 		put_css_set(newcg);
-		retval = -ESRCH;
-		goto out;
+		return -ESRCH;
 	}
 	rcu_assign_pointer(tsk->cgroups, newcg);
 	task_unlock(tsk);
@@ -1636,22 +1601,7 @@ int cgroup_attach_task(struct cgroup *cgrp, struct task_struct *tsk)
 	 * is no longer empty.
 	 */
 	cgroup_wakeup_rmdir_waiter(cgrp);
-out:
-	if (retval) {
-		for_each_subsys(root, ss) {
-			if (ss == failed_ss)
-				/*
-				 * This subsystem was the one that failed the
-				 * can_attach() check earlier, so we don't need
-				 * to call cancel_attach() against it or any
-				 * remaining subsystems.
-				 */
-				break;
-			if (ss->cancel_attach)
-				ss->cancel_attach(ss, cgrp, tsk, false);
-		}
-	}
-	return retval;
+	return 0;
 }
 
 /*
@@ -1661,6 +1611,7 @@ out:
 static int attach_task_by_pid(struct cgroup *cgrp, u64 pid)
 {
 	struct task_struct *tsk;
+	const struct cred *cred = current_cred(), *tcred;
 	int ret;
 
 	if (pid) {
@@ -1669,6 +1620,14 @@ static int attach_task_by_pid(struct cgroup *cgrp, u64 pid)
 		if (!tsk || tsk->flags & PF_EXITING) {
 			rcu_read_unlock();
 			return -ESRCH;
+		}
+
+		tcred = __task_cred(tsk);
+		if (cred->euid &&
+		    cred->euid != tcred->uid &&
+		    cred->euid != tcred->suid) {
+			rcu_read_unlock();
+			return -EACCES;
 		}
 		get_task_struct(tsk);
 		rcu_read_unlock();
@@ -1715,9 +1674,7 @@ static int cgroup_release_agent_write(struct cgroup *cgrp, struct cftype *cft,
 	BUILD_BUG_ON(sizeof(cgrp->root->release_agent_path) < PATH_MAX);
 	if (!cgroup_lock_live_group(cgrp))
 		return -ENODEV;
-	write_lock(&cgrp->root->lock);
 	strcpy(cgrp->root->release_agent_path, buffer);
-	write_unlock(&cgrp->root->lock);
 	cgroup_unlock();
 	return 0;
 }

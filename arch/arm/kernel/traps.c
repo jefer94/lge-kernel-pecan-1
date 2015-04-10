@@ -33,14 +33,6 @@
 #include "signal.h"
 
 static const char *handler[]= { "prefetch abort", "data abort", "address exception", "interrupt" };
-//LGE_CHANGE_S [bluerti@lge.com] 2009-08-20
-#include "../mach-msm/lge/lge_errorhandler.h"
-char crash_buf[LGE_ERROR_MAX_ROW][LGE_ERROR_MAX_COLUMN];
-extern void smsm_reset_modem(unsigned mode);
-static int lge_error_analyzing = 0;
-static int lge_error_fb_cnt = 0;
-extern void ram_console_panic(void);
-// LGE_CHANGE_E [bluerti@lge.com] 2009-08-20
 
 #ifdef CONFIG_DEBUG_USER
 unsigned int user_debug;
@@ -59,17 +51,9 @@ void dump_backtrace_entry(unsigned long where, unsigned long from, unsigned long
 {
 #ifdef CONFIG_KALLSYMS
 	char sym1[KSYM_SYMBOL_LEN], sym2[KSYM_SYMBOL_LEN];
- // LGE_CHANGE_S [bluerti@lge.com]
-	if (lge_error_analyzing == 1){
-	  char * temp;
-	  sprintf(crash_buf[lge_error_fb_cnt], "[<%08lx>] " ); temp = crash_buf[lge_error_fb_cnt]; temp+=13; sprint_symbol(temp, where);		
-	  lge_error_fb_cnt++;
-	} else {	// Normal case 
 	sprint_symbol(sym1, where);
 	sprint_symbol(sym2, from);
 	printk("[<%08lx>] (%s) from [<%08lx>] (%s)\n", where, sym1, from, sym2);
-	}
- // LGE_CHANGE_E [bluerti@lge.com]
 #else
 	printk("Function entered at [<%08lx>] from [<%08lx>]\n", where, from);
 #endif
@@ -240,18 +224,11 @@ void show_stack(struct task_struct *tsk, unsigned long *sp)
 #define S_SMP ""
 #endif
 
-#ifdef CONFIG_MACH_LGE
-extern int hidden_reset_enable;
-#endif
-
 static void __die(const char *str, int err, struct thread_info *thread, struct pt_regs *regs)
 {
 	struct task_struct *tsk = thread->task;
 	static int die_counter;
 
-#ifdef CONFIG_MACH_LGE
-	printk(KERN_EMERG">>>>>\n");
-#endif
 	printk(KERN_EMERG "Internal error: %s: %x [#%d]" S_PREEMPT S_SMP "\n",
 	       str, err, ++die_counter);
 	sysfs_printk_last_file();
@@ -263,56 +240,12 @@ static void __die(const char *str, int err, struct thread_info *thread, struct p
 	if (!user_mode(regs) || in_interrupt()) {
 		dump_mem(KERN_EMERG, "Stack: ", regs->ARM_sp,
 			 THREAD_SIZE + (unsigned long)task_stack_page(tsk));
-#ifdef CONFIG_MACH_LGE
-		printk(KERN_EMERG"vvvvv\n");
-#endif
 		dump_backtrace(regs, tsk);
 		dump_instr(KERN_EMERG, regs);
-#ifdef CONFIG_MACH_LGE
-		printk(KERN_EMERG"^^^^^\n");
-#endif
 	}
-
-		/* LGE_CHANGE_S [bluerti@lge.com] 2010-07-22 */
-	if (!hidden_reset_enable) {
-		//extern int LG_ErrorHandler_enable;
-		char * temp;
-		int ret;
-
-		//if (!LG_ErrorHandler_enable) {
-		lge_error_analyzing = 1;
-		sprintf(crash_buf[1],"---------------------------------------");
-		sprintf(crash_buf[2], "Linux Kernel Panic ");
-		sprintf(crash_buf[3], "Process %s (pid: %d)",tsk->comm, task_pid_nr(tsk));
-		sprintf(crash_buf[4], "--------------------------------------");
-		sprintf(crash_buf[5], "PC: " ); temp = crash_buf[5]; temp+=4; sprint_symbol(temp, instruction_pointer(regs));
-		sprintf(crash_buf[6], "LR: " ); temp = crash_buf[6]; temp+=4; sprint_symbol(temp, regs->ARM_lr);
-		sprintf(crash_buf[7], "pc : [<%08lx>]    lr : [<%08lx>]", regs->ARM_pc, regs->ARM_lr); 
-		sprintf(crash_buf[8], "psr: %08lx  sp : %08lx", regs->ARM_cpsr, regs->ARM_sp);
-		sprintf(crash_buf[9], "ip : %08lx  fp : %08lx", regs->ARM_ip, regs->ARM_fp);
-		sprintf(crash_buf[10],"r10: %08lx  r9 : %08lx", regs->ARM_r10, regs->ARM_r9); 
-		sprintf(crash_buf[11],"r8 : %08lx  r7 : %08lx", regs->ARM_r8, regs->ARM_r7);
-		sprintf(crash_buf[12],"r6 : %08lx  r5 : %08lx", regs->ARM_r6,regs->ARM_r5);  
-		sprintf(crash_buf[13],"r4 : %08lx  r3 : %08lx",regs->ARM_r4, regs->ARM_r3);
-		sprintf(crash_buf[14],"r2 : %08lx  r1 : %08lx",regs->ARM_r2,regs->ARM_r1);
-		sprintf(crash_buf[15],"r0 : %08lx", regs->ARM_r0);
-		sprintf(crash_buf[16], "-------<Call Stack>------------------");
-		lge_error_fb_cnt = 17;
-		dump_backtrace(regs, tsk);
-		dump_instr(KERN_EMERG, regs);
-		//smsm_reset_modem(SMSM_APPS_SHUTDOWN); //[blue.park@lge.com] It will be informed a kernel panic to Modem side.
-		ret = LGE_ErrorHandler_Main(APPL_CRASH, (char *)crash_buf);
-		lge_error_analyzing = 0;
-
-		smsm_reset_modem(ret);
-		while(1) 
-			;
-		//}
-	}
-	/* LGE_CHANGE_E [bluerti@lge.com] 2010-07-22 */
 }
 
-static DEFINE_SPINLOCK(die_lock);
+DEFINE_SPINLOCK(die_lock);
 
 /*
  * This function is protected against re-entrancy.
@@ -506,10 +439,6 @@ do_cache_op(unsigned long start, unsigned long end, int flags)
 			end = vma->vm_end;
 
 		flush_cache_user_range(vma, start, end);
-#ifdef CONFIG_ARCH_MSM7X27
-		dmb();
-#endif
-
 	}
 	up_read(&mm->mmap_sem);
 }
@@ -576,8 +505,7 @@ asmlinkage int arm_syscall(int no, struct pt_regs *regs)
 		thread->tp_value = regs->ARM_r0;
 #if defined(CONFIG_HAS_TLS_REG)
 		asm ("mcr p15, 0, %0, c13, c0, 3" : : "r" (regs->ARM_r0) );
-//#elif !defined(CONFIG_TLS_REG_EMUL)
-#endif
+#elif !defined(CONFIG_TLS_REG_EMUL)
 		/*
 		 * User space must never try to access this directly.
 		 * Expect your app to break eventually if you do so.
@@ -585,7 +513,7 @@ asmlinkage int arm_syscall(int no, struct pt_regs *regs)
 		 * (see entry-armv.S for details)
 		 */
 		*((unsigned int *)0xffff0ff0) = regs->ARM_r0;
-//#endif
+#endif
 		return 0;
 
 #ifdef CONFIG_NEEDS_SYSCALL_FOR_CMPXCHG

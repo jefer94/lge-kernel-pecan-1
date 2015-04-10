@@ -585,7 +585,6 @@ static int swap_entry_free(struct swap_info_struct *p,
 			swap_list.next = p - swap_info;
 		nr_swap_pages++;
 		p->inuse_pages--;
-             
 	}
 	if (!swap_count(count))
 		mem_cgroup_uncharge_swap(ent);

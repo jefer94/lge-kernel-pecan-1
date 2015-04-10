@@ -67,7 +67,7 @@
  * Limiting Performance Impact
  * ---------------------------
  * C states, especially those with large exit latencies, can have a real
- * noticeable impact on workloads, which is not acceptable for most sysadmins,
+ * noticable impact on workloads, which is not acceptable for most sysadmins,
  * and in addition, less performance has a power price of its own.
  *
  * As a general rule of thumb, menu assumes that the following heuristic
@@ -111,6 +111,14 @@ struct menu_device {
 #define LOAD_INT(x) ((x) >> FSHIFT)
 #define LOAD_FRAC(x) LOAD_INT(((x) & (FIXED_1-1)) * 100)
 
+static int get_loadavg(void)
+{
+	unsigned long this = this_cpu_load();
+
+
+	return LOAD_INT(this) * 10 + LOAD_FRAC(this) / 10;
+}
+
 static inline int which_bucket(unsigned int duration)
 {
 	int bucket = 0;
@@ -148,6 +156,10 @@ static inline int performance_multiplier(void)
 {
 	int mult = 1;
 
+	/* for higher loadavg, we are more reluctant */
+
+	mult += 2 * get_loadavg();
+
 	/* for IO wait tasks (per cpu!) we add 5x each */
 	mult += 10 * nr_iowait_cpu();
 
@@ -172,10 +184,8 @@ static int menu_select(struct cpuidle_device *dev)
 {
 	struct menu_device *data = &__get_cpu_var(menu_devices);
 	int latency_req = pm_qos_requirement(PM_QOS_CPU_DMA_LATENCY);
-	unsigned int power_usage = -1;
 	int i;
 	int multiplier;
-	struct timespec t;
 
 	data->last_state_idx = 0;
 	data->exit_us = 0;
@@ -190,9 +200,8 @@ static int menu_select(struct cpuidle_device *dev)
 		return 0;
 
 	/* determine the expected residency time, round up */
-	t = ktime_to_timespec(tick_nohz_get_sleep_length());
 	data->expected_us =
-		t.tv_sec * USEC_PER_SEC + t.tv_nsec / NSEC_PER_USEC;
+	    DIV_ROUND_UP((u32)ktime_to_ns(tick_nohz_get_sleep_length()), 1000);
 
 
 	data->bucket = which_bucket(data->expected_us);
@@ -217,27 +226,19 @@ static int menu_select(struct cpuidle_device *dev)
 	if (data->expected_us > 5)
 		data->last_state_idx = CPUIDLE_DRIVER_STATE_START;
 
-	/*
-	 * Find the idle state with the lowest power while satisfying
-	 * our constraints.
-	 */
+
+	/* find the deepest idle state that satisfies our constraints */
 	for (i = CPUIDLE_DRIVER_STATE_START; i < dev->state_count; i++) {
 		struct cpuidle_state *s = &dev->states[i];
 
-		if (s->flags & CPUIDLE_FLAG_IGNORE)
-			continue;
 		if (s->target_residency > data->predicted_us)
-			continue;
+			break;
 		if (s->exit_latency > latency_req)
-			continue;
+			break;
 		if (s->exit_latency * multiplier > data->predicted_us)
-			continue;
-
-		if (s->power_usage < power_usage) {
-			power_usage = s->power_usage;
-			data->last_state_idx = i;
-			data->exit_us = s->exit_latency;
-		}
+			break;
+		data->exit_us = s->exit_latency;
+		data->last_state_idx = i;
 	}
 
 	return data->last_state_idx;

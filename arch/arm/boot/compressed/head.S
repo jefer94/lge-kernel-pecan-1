@@ -21,7 +21,7 @@
 
 #if defined(CONFIG_DEBUG_ICEDCC)
 
-#ifdef defined(CONFIG_CPU_V6) || defined(CONFIG_CPU_V7)
+#ifdef CONFIG_CPU_V6
 		.macro	loadsp, rb
 		.endm
 		.macro	writeb, ch, rb
@@ -306,7 +306,7 @@ LC0:		.word	LC0			@ r1
 		.word	_start			@ r5
 		.word	_got_start		@ r6
 		.word	_got_end		@ ip
-		.word	user_stack_end		@ sp
+		.word	user_stack+4096		@ sp
 LC1:		.word	reloc_end - reloc_start
 		.size	LC0, . - LC0
 
@@ -388,18 +388,12 @@ __armv3_mpu_cache_on:
 
 		mov	r0, #0
 		mcr	p15, 0, r0, c7, c0, 0	@ invalidate whole cache v3
-		/*
-		 * ?? ARMv3 MMU does not allow reading the control register,
-		 * does this really work on ARMv3 MPU?
-		 */
 		mrc	p15, 0, r0, c1, c0, 0	@ read control reg
 						@ .... .... .... WC.M
 		orr	r0, r0, #0x000d		@ .... .... .... 11.1
-		/* ?? this overwrites the value constructed above? */
 		mov	r0, #0
 		mcr	p15, 0, r0, c1, c0, 0	@ write control reg
 
-		/* ?? invalidate for the second time? */
 		mcr	p15, 0, r0, c7, c0, 0	@ invalidate whole cache v3
 		mov	pc, lr
 
@@ -626,8 +620,6 @@ proc_types:
 @		b	__arm6_mmu_cache_off
 @		b	__armv3_mmu_cache_flush
 
-#if !defined(CONFIG_CPU_V7)
-		/* This collides with some V7 IDs, preventing correct detection */
 		.word	0x00000000		@ old ARM ID
 		.word	0x0000f000
 		mov	pc, lr
@@ -636,7 +628,6 @@ proc_types:
  THUMB(		nop				)
 		mov	pc, lr
  THUMB(		nop				)
-#endif
 
 		.word	0x41007000		@ ARM7/710
 		.word	0xfff8fe00
@@ -1075,4 +1066,3 @@ reloc_end:
 		.align
 		.section ".stack", "w"
 user_stack:	.space	4096
-user_stack_end:

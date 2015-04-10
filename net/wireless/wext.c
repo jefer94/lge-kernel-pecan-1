@@ -1131,9 +1131,8 @@ static int wireless_process_ioctl(struct net *net, struct ifreq *ifr,
  */
 static int wext_permission_check(unsigned int cmd)
 {
-	if ((IW_IS_SET(cmd) || cmd == SIOCGIWENCODE ||
-	     cmd == SIOCGIWENCODEEXT) &&
-	    !capable(CAP_NET_ADMIN))
+	if ((IW_IS_SET(cmd) || cmd == SIOCGIWENCODE || cmd == SIOCGIWENCODEEXT)
+	    && !capable(CAP_NET_ADMIN))
 		return -EPERM;
 
 	return 0;
@@ -1380,14 +1379,8 @@ void wireless_send_event(struct net_device *	dev,
 	 * and no data is included in the event, this codifies that
 	 * practice.
 	 */
-/* LGE_CHANGES_S [taekeun1.kim@lge.com] 2010-06-06, for wifi */
-#if !defined (CONFIG_MACH_LGE)
 	if (WARN_ON(cmd == SIOCGIWSCAN && extra))
 		extra = NULL;
-#else
-	if ((cmd == SIOCGIWSCAN) && extra)
-		extra = NULL;
-#endif
 
 	/* Get the description of the Event */
 	if (cmd <= SIOCIWLAST) {

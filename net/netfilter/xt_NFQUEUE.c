@@ -30,7 +30,7 @@ MODULE_ALIAS("arpt_NFQUEUE");
 static u32 jhash_initval __read_mostly;
 
 static unsigned int
-nfqueue_tg(struct sk_buff *skb, const struct xt_action_param *par)
+nfqueue_tg(struct sk_buff *skb, const struct xt_target_param *par)
 {
 	const struct xt_NFQ_info *tinfo = par->targinfo;
 
@@ -46,6 +46,17 @@ static u32 hash_v4(const struct sk_buff *skb)
 	ipaddr = iph->saddr ^ iph->daddr;
 
 	return jhash_2words((__force u32)ipaddr, iph->protocol, jhash_initval);
+}
+
+static unsigned int
+nfqueue_tg4_v1(struct sk_buff *skb, const struct xt_target_param *par)
+{
+	const struct xt_NFQ_info_v1 *info = par->targinfo;
+	u32 queue = info->queuenum;
+
+	if (info->queues_total > 1)
+		queue = hash_v4(skb) % info->queues_total + queue;
+	return NF_QUEUE_NR(queue);
 }
 
 #if defined(CONFIG_IP6_NF_IPTABLES) || defined(CONFIG_IP6_NF_IPTABLES_MODULE)
@@ -65,12 +76,12 @@ static u32 hash_v6(const struct sk_buff *skb)
 static unsigned int
 nfqueue_tg6_v1(struct sk_buff *skb, const struct xt_target_param *par)
 {
-//	const struct xt_NFQ_info_v1 *info = par->targinfo;
-//	u32 queue = info->queuenum;
+	const struct xt_NFQ_info_v1 *info = par->targinfo;
+	u32 queue = info->queuenum;
 
-//	if (info->queues_total > 1)
-//		queue = hash_v6(skb) % info->queues_total + queue;
-//	return NF_QUEUE_NR(queue);
+	if (info->queues_total > 1)
+		queue = hash_v6(skb) % info->queues_total + queue;
+	return NF_QUEUE_NR(queue);
 }
 #endif
 
@@ -105,6 +116,7 @@ static struct xt_target nfqueue_tg_reg[] __read_mostly = {
 		.revision	= 1,
 		.family		= NFPROTO_IPV4,
 		.checkentry	= nfqueue_tg_v1_check,
+		.target		= nfqueue_tg4_v1,
 		.targetsize	= sizeof(struct xt_NFQ_info_v1),
 		.me		= THIS_MODULE,
 	},

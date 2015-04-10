@@ -278,31 +278,12 @@ static int fbcon_get_rotate(struct fb_info *info)
 	return (ops) ? ops->rotate : 0;
 }
 
-/* LGE_CHANGE_S
- * Change codes to remove console cursor on booting screen. Refered to VS740
- * 2010-07-31. minjong.gong@lge.com
- */
-#ifdef CONFIG_LGE_FBCON_INACTIVE_CONSOLE
-extern int msm_fb_get_console_inactive(void);
-#endif
-/* LGE_CHANGE_E, 2010-07-31. minjong.gong@lge.com  */
 static inline int fbcon_is_inactive(struct vc_data *vc, struct fb_info *info)
 {
 	struct fbcon_ops *ops = info->fbcon_par;
 
-/* LGE_CHANGE_S
- * Change codes to remove console cursor on booting screen. Refered to VS740
- * 2010-07-31. minjong.gong@lge.com
- */
-#ifdef CONFIG_LGE_FBCON_INACTIVE_CONSOLE
-	return (info->state != FBINFO_STATE_RUNNING ||
-		vc->vc_mode != KD_TEXT || ops->graphics
-		|| msm_fb_get_console_inactive());
-#else
 	return (info->state != FBINFO_STATE_RUNNING ||
 		vc->vc_mode != KD_TEXT || ops->graphics);
-#endif
-/* LGE_CHANGE_E, 2010-07-31. minjong.gong@lge.com  */
 }
 
 static inline int get_color(struct vc_data *vc, struct fb_info *info,
@@ -464,7 +445,7 @@ static int __init fb_console_setup(char *this_opt)
 	while ((options = strsep(&this_opt, ",")) != NULL) {
 		if (!strncmp(options, "font:", 5))
 			strcpy(fontname, options + 5);
-
+		
 		if (!strncmp(options, "scrollback:", 11)) {
 			options += 11;
 			if (*options) {
@@ -479,7 +460,7 @@ static int __init fb_console_setup(char *this_opt)
 			} else
 				return 1;
 		}
-
+		
 		if (!strncmp(options, "map:", 4)) {
 			options += 4;
 			if (*options) {
@@ -956,7 +937,7 @@ static const char *fbcon_startup(void)
 	info = registered_fb[info_idx];
 	if (!info)
 		return NULL;
-
+	
 	owner = info->fbops->owner;
 	if (!try_module_get(owner))
 		return NULL;
@@ -1270,27 +1251,6 @@ static void fbcon_clear(struct vc_data *vc, int sy, int sx, int height,
 		ops->clear(vc, info, real_y(p, sy), sx, height, width);
 }
 
-/* LGE_CHANGE_S [bluerti@lge.com] 2009-07-13 */
-void fbcon_putcs_byLGE(struct vc_data *vc, const unsigned short *s,
-			int count, int ypos, int xpos)
-{
-	struct fb_info *info = registered_fb[con2fb_map[vc->vc_num]];
-	struct display *p = &fb_display[vc->vc_num];
-	struct fbcon_ops *ops = info->fbcon_par;
-
-	ops->putcs(vc, info, s, count, real_y(p, ypos), xpos,
-			   1, 0);
-
-
-}
-void fbcon_update_byLGE(struct vc_data *vc)
-{
-	struct fb_info *info = registered_fb[con2fb_map[vc->vc_num]];
-	struct fbcon_ops *ops = info->fbcon_par;
-
-	ops->update_start(info);
-}
-/* LGE_CHANGE_E [bluerti@lge.com] 2009-07-13 */
 static void fbcon_putcs(struct vc_data *vc, const unsigned short *s,
 			int count, int ypos, int xpos)
 {
@@ -1428,7 +1388,7 @@ static __inline__ void ywrap_up(struct vc_data *vc, int count)
 	struct fb_info *info = registered_fb[con2fb_map[vc->vc_num]];
 	struct fbcon_ops *ops = info->fbcon_par;
 	struct display *p = &fb_display[vc->vc_num];
-
+	
 	p->yscroll += count;
 	if (p->yscroll >= p->vrows)	/* Deal with wrap */
 		p->yscroll -= p->vrows;
@@ -1447,7 +1407,7 @@ static __inline__ void ywrap_down(struct vc_data *vc, int count)
 	struct fb_info *info = registered_fb[con2fb_map[vc->vc_num]];
 	struct fbcon_ops *ops = info->fbcon_par;
 	struct display *p = &fb_display[vc->vc_num];
-
+	
 	p->yscroll -= count;
 	if (p->yscroll < 0)	/* Deal with wrap */
 		p->yscroll += p->vrows;
@@ -1514,7 +1474,7 @@ static __inline__ void ypan_down(struct vc_data *vc, int count)
 	struct fb_info *info = registered_fb[con2fb_map[vc->vc_num]];
 	struct display *p = &fb_display[vc->vc_num];
 	struct fbcon_ops *ops = info->fbcon_par;
-
+	
 	p->yscroll -= count;
 	if (p->yscroll < 0) {
 		ops->bmove(vc, info, 0, 0, p->vrows - vc->vc_rows,
@@ -2023,7 +1983,7 @@ static void fbcon_bmove(struct vc_data *vc, int sy, int sx, int dy, int dx,
 {
 	struct fb_info *info = registered_fb[con2fb_map[vc->vc_num]];
 	struct display *p = &fb_display[vc->vc_num];
-
+	
 	if (fbcon_is_inactive(vc, info))
 		return;
 
@@ -2215,7 +2175,7 @@ static int fbcon_switch(struct vc_data *vc)
 	 *
 	 * info->currcon = vc->vc_num;
 	 */
-	for (i = 1; i < FB_MAX; i++) {
+	for (i = 0; i < FB_MAX; i++) {
 		if (registered_fb[i] != NULL && registered_fb[i]->fbcon_par) {
 			struct fbcon_ops *o = registered_fb[i]->fbcon_par;
 
@@ -2464,7 +2424,7 @@ static int fbcon_do_set_font(struct vc_data *vc, int w, int h,
 			vc->vc_complement_mask >>= 1;
 			vc->vc_s_complement_mask >>= 1;
 		}
-
+			
 		/* ++Edmund: reorder the attribute bits */
 		if (vc->vc_can_do_color) {
 			unsigned short *cp =
@@ -2487,7 +2447,7 @@ static int fbcon_do_set_font(struct vc_data *vc, int w, int h,
 			vc->vc_complement_mask <<= 1;
 			vc->vc_s_complement_mask <<= 1;
 		}
-
+			
 		/* ++Edmund: reorder the attribute bits */
 		{
 			unsigned short *cp =
@@ -2607,7 +2567,7 @@ static int fbcon_set_font(struct vc_data *vc, struct console_font *font, unsigne
 	/* Check if the same font is on some other console already */
 	for (i = first_fb_vc; i <= last_fb_vc; i++) {
 		struct vc_data *tmp = vc_cons[i].d;
-
+		
 		if (fb_display[i].userfont &&
 		    fb_display[i].fontdata &&
 		    FNTSUM(fb_display[i].fontdata) == csum &&
@@ -2685,7 +2645,7 @@ static u16 *fbcon_screen_pos(struct vc_data *vc, int offset)
 {
 	unsigned long p;
 	int line;
-
+	
 	if (vc->vc_num != fg_console || !softback_lines)
 		return (u16 *) (vc->vc_origin + offset);
 	line = offset / vc->vc_size_row;
@@ -3478,7 +3438,7 @@ static void fbcon_start(void)
 
 		acquire_console_sem();
 
-		for (i = 1; i < FB_MAX; i++) {
+		for (i = 0; i < FB_MAX; i++) {
 			if (registered_fb[i] != NULL) {
 				info_idx = i;
 				break;
@@ -3501,7 +3461,7 @@ static void fbcon_exit(void)
 	kfree((void *)softback_buf);
 	softback_buf = 0UL;
 
-	for (i = 1; i < FB_MAX; i++) {
+	for (i = 0; i < FB_MAX; i++) {
 		int pending;
 
 		mapped = 0;
@@ -3548,7 +3508,7 @@ static int __init fb_console_init(void)
 	acquire_console_sem();
 	fb_register_client(&fbcon_event_notifier);
 	fbcon_device = device_create(fb_class, NULL, MKDEV(0, 0), NULL,
-				     "fbconsole");
+				     "fbcon");
 
 	if (IS_ERR(fbcon_device)) {
 		printk(KERN_WARNING "Unable to create device "

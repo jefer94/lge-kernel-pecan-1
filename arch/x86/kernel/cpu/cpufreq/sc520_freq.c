@@ -29,6 +29,8 @@
 
 static __u8 __iomem *cpuctl;
 
+#define dprintk(msg...) cpufreq_debug_printk(CPUFREQ_DEBUG_DRIVER, \
+		"sc520_freq", msg)
 #define PFX "sc520_freq: "
 
 static struct cpufreq_frequency_table sc520_freq_table[] = {
@@ -64,7 +66,7 @@ static void sc520_freq_set_cpu_state(unsigned int state)
 
 	cpufreq_notify_transition(&freqs, CPUFREQ_PRECHANGE);
 
-	pr_debug("attempting to set frequency to %i kHz\n",
+	dprintk("attempting to set frequency to %i kHz\n",
 			sc520_freq_table[state].frequency);
 
 	local_irq_disable();
@@ -159,7 +161,7 @@ static int __init sc520_freq_init(void)
 	/* Test if we have the right hardware */
 	if (c->x86_vendor != X86_VENDOR_AMD ||
 	    c->x86 != 4 || c->x86_model != 9) {
-		pr_debug("no Elan SC520 processor found!\n");
+		dprintk("no Elan SC520 processor found!\n");
 		return -ENODEV;
 	}
 	cpuctl = ioremap((unsigned long)(MMCR_BASE + OFFS_CPUCTL), 1);

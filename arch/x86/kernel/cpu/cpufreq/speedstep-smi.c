@@ -56,6 +56,9 @@ static struct cpufreq_frequency_table speedstep_freqs[] = {
  * of DMA activity going on? */
 #define SMI_TRIES 5
 
+#define dprintk(msg...) cpufreq_debug_printk(CPUFREQ_DEBUG_DRIVER, \
+		"speedstep-smi", msg)
+
 /**
  * speedstep_smi_ownership
  */
@@ -68,7 +71,7 @@ static int speedstep_smi_ownership(void)
 	command = (smi_sig & 0xffffff00) | (smi_cmd & 0xff);
 	magic = virt_to_phys(magic_data);
 
-	pr_debug("trying to obtain ownership with command %x at port %x\n",
+	dprintk("trying to obtain ownership with command %x at port %x\n",
 			command, smi_port);
 
 	__asm__ __volatile__(
@@ -83,7 +86,7 @@ static int speedstep_smi_ownership(void)
 		: "memory"
 	);
 
-	pr_debug("result is %x\n", result);
+	dprintk("result is %x\n", result);
 
 	return result;
 }
@@ -104,13 +107,13 @@ static int speedstep_smi_get_freqs(unsigned int *low, unsigned int *high)
 	u32 function = GET_SPEEDSTEP_FREQS;
 
 	if (!(ist_info.event & 0xFFFF)) {
-		pr_debug("bug #1422 -- can't read freqs from BIOS\n");
+		dprintk("bug #1422 -- can't read freqs from BIOS\n");
 		return -ENODEV;
 	}
 
 	command = (smi_sig & 0xffffff00) | (smi_cmd & 0xff);
 
-	pr_debug("trying to determine frequencies with command %x at port %x\n",
+	dprintk("trying to determine frequencies with command %x at port %x\n",
 			command, smi_port);
 
 	__asm__ __volatile__(
@@ -127,7 +130,7 @@ static int speedstep_smi_get_freqs(unsigned int *low, unsigned int *high)
 		  "d" (smi_port), "S" (0), "D" (0)
 	);
 
-	pr_debug("result %x, low_freq %u, high_freq %u\n",
+	dprintk("result %x, low_freq %u, high_freq %u\n",
 			result, low_mhz, high_mhz);
 
 	/* abort if results are obviously incorrect... */
@@ -152,7 +155,7 @@ static int speedstep_get_state(void)
 
 	command = (smi_sig & 0xffffff00) | (smi_cmd & 0xff);
 
-	pr_debug("trying to determine current setting with command %x "
+	dprintk("trying to determine current setting with command %x "
 		"at port %x\n", command, smi_port);
 
 	__asm__ __volatile__(
@@ -166,7 +169,7 @@ static int speedstep_get_state(void)
 		  "d" (smi_port), "S" (0), "D" (0)
 	);
 
-	pr_debug("state is %x, result is %x\n", state, result);
+	dprintk("state is %x, result is %x\n", state, result);
 
 	return state & 1;
 }
@@ -192,13 +195,13 @@ static void speedstep_set_state(unsigned int state)
 
 	command = (smi_sig & 0xffffff00) | (smi_cmd & 0xff);
 
-	pr_debug("trying to set frequency to state %u "
+	dprintk("trying to set frequency to state %u "
 		"with command %x at port %x\n",
 		state, command, smi_port);
 
 	do {
 		if (retry) {
-			pr_debug("retry %u, previous result %u, waiting...\n",
+			dprintk("retry %u, previous result %u, waiting...\n",
 					retry, result);
 			mdelay(retry * 50);
 		}
@@ -219,7 +222,7 @@ static void speedstep_set_state(unsigned int state)
 	local_irq_restore(flags);
 
 	if (new_state == state)
-		pr_debug("change to %u MHz succeeded after %u tries "
+		dprintk("change to %u MHz succeeded after %u tries "
 			"with result %u\n",
 			(speedstep_freqs[new_state].frequency / 1000),
 			retry, result);
@@ -302,7 +305,7 @@ static int speedstep_cpu_init(struct cpufreq_policy *policy)
 	if (result) {
 		/* fall back to speedstep_lib.c dection mechanism:
 		 * try both states out */
-		pr_debug("could not detect low and high frequencies "
+		dprintk("could not detect low and high frequencies "
 				"by SMI call.\n");
 		result = speedstep_get_freqs(speedstep_processor,
 				low, high,
@@ -310,18 +313,18 @@ static int speedstep_cpu_init(struct cpufreq_policy *policy)
 				&speedstep_set_state);
 
 		if (result) {
-			pr_debug("could not detect two different speeds"
+			dprintk("could not detect two different speeds"
 					" -- aborting.\n");
 			return result;
 		} else
-			pr_debug("workaround worked.\n");
+			dprintk("workaround worked.\n");
 	}
 
 	/* get current speed setting */
 	state = speedstep_get_state();
 	speed = speedstep_freqs[state].frequency;
 
-	pr_debug("currently at %s speed setting - %i MHz\n",
+	dprintk("currently at %s speed setting - %i MHz\n",
 		(speed == speedstep_freqs[SPEEDSTEP_LOW].frequency)
 		? "low" : "high",
 		(speed / 1000));
@@ -401,12 +404,12 @@ static int __init speedstep_init(void)
 	}
 
 	if (!speedstep_processor) {
-		pr_debug("No supported Intel CPU detected.\n");
+		dprintk("No supported Intel CPU detected.\n");
 		return -ENODEV;
 	}
 
-	pr_debug("signature:0x%.8ulx, command:0x%.8ulx, "
-		"event:0x%.8ulx, perf_level:0x%.8ulx.\n",
+	dprintk("signature:0x%.8lx, command:0x%.8lx, "
+		"event:0x%.8lx, perf_level:0x%.8lx.\n",
 		ist_info.signature, ist_info.command,
 		ist_info.event, ist_info.perf_level);
 

@@ -23,9 +23,6 @@ menuconfig NET
 
 if NET
 
-config COMPAT_NET_DEV_OPS
-	   def_bool y
-
 config WANT_COMPAT_NETLINK_MESSAGES
 	bool
 	help
@@ -81,12 +78,6 @@ source "net/ipv6/Kconfig"
 source "net/netlabel/Kconfig"
 
 endif # if INET
-
-config ANDROID_PARANOID_NETWORK
-	bool "Only allow certain groups to create sockets"
-	default y
-	help
-		none
 
 config NETWORK_SECMARK
 	bool "Security Marking"

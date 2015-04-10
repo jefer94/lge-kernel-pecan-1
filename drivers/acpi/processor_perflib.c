@@ -48,6 +48,10 @@ ACPI_MODULE_NAME("processor_perflib");
 
 static DEFINE_MUTEX(performance_mutex);
 
+/* Use cpufreq debug layer for _PPC changes. */
+#define cpufreq_printk(msg...) cpufreq_debug_printk(CPUFREQ_DEBUG_CORE, \
+						"cpufreq-core", msg)
+
 /*
  * _PPC support is implemented as a CPUfreq policy notifier:
  * This means each time a CPUfreq driver registered also with
@@ -140,7 +144,7 @@ static int acpi_processor_get_platform_limit(struct acpi_processor *pr)
 		return -ENODEV;
 	}
 
-	pr_debug("CPU %d: _PPC is %d - frequency %s limited\n", pr->id,
+	cpufreq_printk("CPU %d: _PPC is %d - frequency %s limited\n", pr->id,
 		       (int)ppc, ppc ? "" : "not");
 
 	pr->performance_platform_limit = (int)ppc;
@@ -162,19 +166,6 @@ int acpi_processor_ppc_has_changed(struct acpi_processor *pr)
 	else
 		return cpufreq_update_policy(pr->id);
 }
-
-int acpi_processor_get_bios_limit(int cpu, unsigned int *limit)
-{
-	struct acpi_processor *pr;
-
-	pr = per_cpu(processors, cpu);
-	if (!pr || !pr->performance || !pr->performance->state_count)
-		return -ENODEV;
-	*limit = pr->performance->states[pr->performance_platform_limit].
-		core_frequency * 1000;
-	return 0;
-}
-EXPORT_SYMBOL(acpi_processor_get_bios_limit);
 
 void acpi_processor_ppc_init(void)
 {

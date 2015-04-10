@@ -19,6 +19,9 @@
 
 #define DRIVER_NAME "bfin dpmc"
 
+#define dprintk(msg...) \
+	cpufreq_debug_printk(CPUFREQ_DEBUG_DRIVER, DRIVER_NAME, msg)
+
 struct bfin_dpmc_platform_data *pdata;
 
 /**
